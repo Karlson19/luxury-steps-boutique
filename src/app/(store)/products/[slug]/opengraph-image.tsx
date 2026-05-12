@@ -5,7 +5,6 @@ export const alt = 'Luxury Steps Boutique';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-// Defensive defaults so the route never throws at module load.
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? '';
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
@@ -13,7 +12,17 @@ interface ProductRow {
   name: string;
   category: string;
   price: number;
+  images: string[] | null;
 }
+
+const CATEGORY_LABEL: Record<string, string> = {
+  heels:     'Heels',
+  flats:     'Flats & Slippers',
+  handbags:  'Handbags',
+  tote:      'Tote Bags',
+  crossbody: 'Crossbody',
+  mini:      'Mini Bags',
+};
 
 async function fetchProduct(slug: string): Promise<ProductRow | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON) return null;
@@ -21,10 +30,10 @@ async function fetchProduct(slug: string): Promise<ProductRow | null> {
     const url =
       `${SUPABASE_URL}/rest/v1/products` +
       `?slug=eq.${encodeURIComponent(slug)}` +
-      `&select=name,category,price` +
+      `&select=name,category,price,images` +
       `&limit=1`;
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 2500);
+    const t = setTimeout(() => ctrl.abort(), 2000);
     const res = await fetch(url, {
       headers: {
         apikey: SUPABASE_ANON,
@@ -43,23 +52,49 @@ async function fetchProduct(slug: string): Promise<ProductRow | null> {
   }
 }
 
-const CATEGORY_LABEL: Record<string, string> = {
-  heels:     'Heels',
-  flats:     'Flats & Slippers',
-  handbags:  'Handbags',
-  tote:      'Tote Bags',
-  crossbody: 'Crossbody',
-  mini:      'Mini Bags',
-};
+// Pre-fetch the product photo into memory and turn it into a base64 data URL.
+// satori (the renderer inside next/og) chokes silently on remote <img> sources
+// from CDNs that use chunked transfer-encoding or non-cacheable responses
+// (e.g. Cloudflare in front of Supabase storage). Inline data URLs sidestep
+// satori's image-loader entirely — it sees the bytes directly and just decodes.
+async function fetchImageAsDataUrl(url: string | undefined): Promise<string | null> {
+  if (!url || !url.startsWith('http')) return null;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+
+    const ct = res.headers.get('content-type') || 'image/jpeg';
+    const buf = await res.arrayBuffer();
+
+    // Hard cap so a rogue large upload can't blow up edge memory.
+    if (buf.byteLength === 0 || buf.byteLength > 800_000) return null;
+
+    // Edge-safe base64 encode (no Node Buffer).
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize) as unknown as number[]);
+    }
+    const base64 = btoa(binary);
+    return `data:${ct};base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
 
 export default async function OGImage({ params }: { params: { slug: string } }) {
-  // Self-contained, two-panel branded card. NO external image is embedded
-  // inside ImageResponse — that's the class of bug that returns 0-byte PNGs
-  // when the upstream image is slow / unreachable / odd-content-type.
-  // Product photo lives on the page itself; the OG card carries the brand.
   let product: ProductRow | null = null;
+  let photoDataUrl: string | null = null;
+
   try {
     product = await fetchProduct(params.slug);
+    if (product) {
+      photoDataUrl = await fetchImageAsDataUrl(product.images?.[0]);
+    }
   } catch {
     product = null;
   }
@@ -79,25 +114,84 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
             fontFamily: 'sans-serif',
           }}
         >
-          {/* LEFT — ivory plate with editorial wordmark + product name */}
+          {/* LEFT — product photo (inline) or LSB placeholder */}
+          {photoDataUrl ? (
+            <div
+              style={{
+                display: 'flex',
+                width: 600,
+                height: 630,
+                flexShrink: 0,
+                background: '#FFE0DA',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photoDataUrl}
+                alt=""
+                width={600}
+                height={630}
+                style={{ width: 600, height: 630, objectFit: 'cover' }}
+              />
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                width: 600,
+                height: 630,
+                flexShrink: 0,
+                background: '#FFE0DA',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 140,
+                  fontWeight: 700,
+                  color: '#C9956C',
+                  letterSpacing: 12,
+                  fontStyle: 'italic',
+                  fontFamily: 'serif',
+                }}
+              >
+                L · S · B
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  color: '#C9956C',
+                  letterSpacing: 8,
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                }}
+              >
+                Luxury Steps
+              </div>
+            </div>
+          )}
+
+          {/* RIGHT — scarlet editorial panel */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               width: 600,
               height: 630,
-              background: '#FFFAF8',
-              padding: '60px 56px',
+              background: '#C8102E',
+              padding: '52px 48px',
               justifyContent: 'space-between',
             }}
           >
-            {/* Top eyebrow */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 36, height: 1.5, background: '#C9956C' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 30, height: 1.5, background: '#C9956C' }} />
               <div
                 style={{
                   fontSize: 13,
-                  color: '#A87850',
+                  color: '#C9956C',
                   letterSpacing: 5,
                   textTransform: 'uppercase',
                   fontWeight: 700,
@@ -107,24 +201,25 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
               </div>
             </div>
 
-            {/* Product name as the editorial headline */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {category && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: 'rgba(201,149,108,0.95)',
+                    letterSpacing: 5,
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                  }}
+                >
+                  {category}
+                </div>
+              )}
               <div
                 style={{
-                  fontSize: 14,
-                  color: '#7B1818',
-                  letterSpacing: 5,
-                  textTransform: 'uppercase',
+                  fontSize: productName.length > 28 ? 48 : 58,
                   fontWeight: 700,
-                }}
-              >
-                {category || 'New Arrival'}
-              </div>
-              <div
-                style={{
-                  fontSize: productName.length > 28 ? 52 : 64,
-                  fontWeight: 700,
-                  color: '#1A0A0A',
+                  color: '#FFFFFF',
                   lineHeight: 1.05,
                   letterSpacing: -1,
                   fontFamily: 'serif',
@@ -134,22 +229,14 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
               </div>
             </div>
 
-            {/* Price + footer */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div
-                style={{
-                  fontSize: 36,
-                  fontWeight: 700,
-                  color: '#C8102E',
-                  letterSpacing: -0.5,
-                }}
-              >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 38, fontWeight: 700, color: '#FFFFFF', letterSpacing: -0.5 }}>
                 {priceLabel}
               </div>
               <div
                 style={{
-                  fontSize: 12,
-                  color: '#7A5050',
+                  fontSize: 11,
+                  color: 'rgba(255,250,248,0.55)',
                   letterSpacing: 3,
                   textTransform: 'uppercase',
                   fontWeight: 600,
@@ -159,52 +246,11 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
               </div>
             </div>
           </div>
-
-          {/* RIGHT — scarlet plate with the L·S·B monogram */}
-          <div
-            style={{
-              display: 'flex',
-              width: 600,
-              height: 630,
-              background: '#C8102E',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 180,
-                fontWeight: 700,
-                color: '#C9956C',
-                letterSpacing: 14,
-                fontStyle: 'italic',
-                fontFamily: 'serif',
-                lineHeight: 1,
-              }}
-            >
-              L · S · B
-            </div>
-            <div
-              style={{
-                fontSize: 16,
-                color: '#FFFAF8',
-                letterSpacing: 8,
-                textTransform: 'uppercase',
-                fontWeight: 600,
-                opacity: 0.85,
-              }}
-            >
-              Boutique
-            </div>
-          </div>
         </div>
       ),
       { ...size },
     );
   } catch {
-    // Last-resort fallback: pure scarlet card with the monogram only.
     return new ImageResponse(
       (
         <div
