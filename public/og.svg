@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <!--
+    Luxury Steps Boutique — landscape OG card (Facebook / WhatsApp / Twitter / LinkedIn).
+    Two-tone composition: ivory-blush plate on the left for the wordmark, scarlet-ruby on the right with the LSB monogram.
+  -->
+  <defs>
+    <linearGradient id="leftBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#FFFAF8"/>
+      <stop offset="100%" stop-color="#FFE0DA"/>
+    </linearGradient>
+
+    <radialGradient id="rightBg" cx="60%" cy="40%" r="80%">
+      <stop offset="0%"   stop-color="#C8102E"/>
+      <stop offset="60%"  stop-color="#A2101F"/>
+      <stop offset="100%" stop-color="#7B1818"/>
+    </radialGradient>
+
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F2DDC3"/>
+      <stop offset="50%"  stop-color="#C9956C"/>
+      <stop offset="100%" stop-color="#A87850"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Right panel: scarlet→ruby with the monogram -->
+  <rect x="480" y="0" width="720" height="630" fill="url(#rightBg)"/>
+  <rect x="480" y="0" width="720" height="630" fill="black" opacity="0.05"
+        style="mix-blend-mode: multiply"/>
+
+  <!-- Double decorative ring around the monogram -->
+  <circle cx="840" cy="315" r="220" fill="none"
+          stroke="url(#gold)" stroke-width="1.5" opacity="0.4"/>
+  <circle cx="840" cy="315" r="204" fill="none"
+          stroke="url(#gold)" stroke-width="0.8" opacity="0.3"/>
+
+  <!-- LSB monogram -->
+  <text x="840" y="370"
+        font-family="'Cormorant Garamond', 'Times New Roman', Georgia, serif"
+        font-style="italic" font-weight="700" font-size="220"
+        letter-spacing="8" text-anchor="middle"
+        fill="url(#gold)">L<tspan dx="0">·</tspan>S<tspan dx="0">·</tspan>B</text>
+
+  <!-- Left panel: ivory plate -->
+  <rect x="0" y="0" width="480" height="630" fill="url(#leftBg)"/>
+
+  <!-- Gold hairline + diamond as eyebrow -->
+  <g transform="translate(72 130)">
+    <line x1="0" y1="0" x2="60" y2="0" stroke="url(#gold)" stroke-width="1.4"/>
+    <path d="M68 -6 L74 0 L68 6 L62 0 Z" fill="url(#gold)"/>
+  </g>
+
+  <!-- Brand eyebrow -->
+  <text x="72" y="170"
+        font-family="'Jost', 'Helvetica Neue', Arial, sans-serif"
+        font-weight="700" font-size="14" letter-spacing="6"
+        fill="#A87850">EST. GHANA</text>
+
+  <!-- Big wordmark -->
+  <text x="72" y="270"
+        font-family="'Cormorant Garamond', 'Times New Roman', Georgia, serif"
+        font-weight="600" font-size="74" letter-spacing="-2"
+        fill="#1A0A0A">Luxury</text>
+  <text x="72" y="338"
+        font-family="'Cormorant Garamond', 'Times New Roman', Georgia, serif"
+        font-style="italic" font-weight="500" font-size="74" letter-spacing="-2"
+        fill="#7B1818">Steps</text>
+  <text x="72" y="406"
+        font-family="'Cormorant Garamond', 'Times New Roman', Georgia, serif"
+        font-weight="600" font-size="74" letter-spacing="-2"
+        fill="#1A0A0A">Boutique</text>
+
+  <!-- Tagline -->
+  <text x="72" y="470"
+        font-family="'Jost', 'Helvetica Neue', Arial, sans-serif"
+        font-weight="400" font-size="20" letter-spacing="0.5"
+        fill="#7A5050">Premium shoes &amp; bags · hand-picked in Ghana.</text>
+
+  <!-- Footer pickup line -->
+  <g transform="translate(72 540)">
+    <circle cx="4" cy="-5" r="3" fill="url(#gold)"/>
+    <text x="20" y="0"
+          font-family="'Jost', 'Helvetica Neue', Arial, sans-serif"
+          font-weight="700" font-size="13" letter-spacing="3"
+          fill="#7B1818">KNUST CAMPUS · ASHAIMAN</text>
+  </g>
+
+  <!-- Subtle vertical divider with bleed-in gradient on the right panel -->
+  <rect x="480" y="0" width="6" height="630" fill="url(#gold)" opacity="0.4"/>
+</svg>

@@ -25,3 +25,12 @@ for (const { out, size } of sizes) {
   await writeFile(path.join(root, 'public', out), buf);
   console.log(`✓ ${out} (${size}×${size}, ${(buf.length / 1024).toFixed(1)} KB)`);
 }
+
+// Landscape OG card (1200×630) — social shares of the homepage / categories.
+const ogSvg = await readFile(path.join(root, 'public', 'og.svg'));
+const ogBuf = await sharp(ogSvg, { density: 300 })
+  .resize(1200, 630, { fit: 'cover' })
+  .jpeg({ quality: 90, mozjpeg: true })
+  .toBuffer();
+await writeFile(path.join(root, 'public', 'og-image.jpg'), ogBuf);
+console.log(`✓ og-image.jpg (1200×630, ${(ogBuf.length / 1024).toFixed(1)} KB)`);
