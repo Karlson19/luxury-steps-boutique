@@ -5,44 +5,39 @@ import Image from 'next/image';
 
 const HERO_SLIDES = [
   {
-    src: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=85&w=2000',
-    text: 'Elevate your style with pieces curated for elegance.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=85&w=2000',
-    text: 'Discover the art of refined adornment.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?q=85&w=2000',
-    text: 'The essence of sophistication, captured.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?q=85&w=2000',
-    text: 'Timeless elegance for every second.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=85&w=2000',
-    text: 'Drape yourself in effortless glamour.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?q=85&w=2000',
-    text: 'Uncompromising quality in every detail.'
-  },
-  {
+    // Stiletto heels
     src: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=85&w=2000',
-    text: 'Walk with confidence. Stand out with grace.'
+    text: 'Walk into every room like it was made for you.'
   },
   {
-    src: 'https://images.unsplash.com/photo-1594938298596-70f56fb3cecb?q=85&w=2000',
-    text: 'Classic tailoring meets modern luxury.'
+    // Structured handbag
+    src: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=85&w=2000',
+    text: 'A handbag that carries more than just essentials.'
   },
   {
-    src: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?q=85&w=2000',
-    text: 'Bold statements for the modern visionary.'
+    // Crossbody / shoulder bag
+    src: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?q=85&w=2000',
+    text: 'Hands-free ease. Day-to-evening polish.'
   },
   {
-    src: 'https://images.unsplash.com/photo-1618220179428-22790b461013?q=85&w=2000',
-    text: 'Curate your space with artistic intention.'
+    // Pointed-toe pump
+    src: 'https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?q=85&w=2000',
+    text: 'The right pair changes everything you wear.'
+  },
+  {
+    // Tote bag
+    src: 'https://images.unsplash.com/photo-1591561954557-26941169b49e?q=85&w=2000',
+    text: 'Room for the day. Shape that holds.'
+  },
+  {
+    // Slide sandals / flats
+    src: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?q=85&w=2000',
+    text: 'Comfort you don’t have to apologise for.'
+  },
+  {
+    // Mini clutch
+    src: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=85&w=2000',
+    text: 'Small bag. Big presence.'
   }
 ];
 

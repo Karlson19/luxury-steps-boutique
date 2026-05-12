@@ -7,29 +7,34 @@ import { ArrowDown } from 'lucide-react';
 
 const HERO_SLIDES = [
   {
-    src: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&q=90',
+    // Scarlet stiletto on neutral backdrop
+    src: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=1920&q=90',
     lead: 'Effortless',
-    italic: 'elegance.'
+    italic: 'steps.'
   },
   {
-    src: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=1920&q=90',
-    lead: 'Unmatched',
-    italic: 'craftsmanship.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1920&q=90',
-    lead: 'Refined',
-    italic: 'adornment.'
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=1920&q=90',
-    lead: 'Timeless',
+    // Structured handbag editorial
+    src: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=1920&q=90',
+    lead: 'Crafted',
     italic: 'silhouettes.'
   },
   {
-    src: 'https://images.unsplash.com/photo-1594938298596-70f56fb3cecb?w=1920&q=90',
-    lead: 'Modern',
-    italic: 'sophistication.'
+    // Crossbody bag — moody shot
+    src: 'https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=1920&q=90',
+    lead: 'Quiet',
+    italic: 'luxury.'
+  },
+  {
+    // Slide sandals / flats flat-lay
+    src: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=1920&q=90',
+    lead: 'Comfort,',
+    italic: 'elevated.'
+  },
+  {
+    // Mini clutch — close-up
+    src: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=1920&q=90',
+    lead: 'Statement',
+    italic: 'pieces.'
   }
 ];
 
@@ -154,7 +159,7 @@ export default function HeroSection() {
             }`}
             style={{ fontFamily: 'var(--font-jost)', fontWeight: 300, letterSpacing: '0.02em' }}
           >
-          Styled with intention. Worn with confidence.       
+          Premium shoes &amp; bags, hand-picked in Ghana.
           </p>
           {/* CTA Buttons */}
           <div className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 transition-all duration-1000 delay-300 ${
