@@ -39,6 +39,15 @@ export const metadata: Metadata = {
     'Premium heels, flats, handbags and clutches — curated by Rahinatu in Ghana. Delivered nationwide via WhatsApp.',
   metadataBase: new URL(getSiteUrl()),
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: '/icon-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
