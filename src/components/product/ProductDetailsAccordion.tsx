@@ -28,19 +28,17 @@ interface ItemDef {
 // Care icons mapped to instruction index
 const CARE_ICONS = [Droplets, Sun, Thermometer, Wind];
 
-// Fallback care per category if AI fails
+// Fallback care per category if the AI route fails or rate-limits.
+const SHOE_CARE = { material: 'Premium upper',    care: ['Wipe clean with a dry cloth', 'Air dry away from heat', 'Condition leather regularly'] };
+const BAG_CARE  = { material: 'Quality material', care: ['Spot clean only', 'Store stuffed to keep shape', 'Keep in the dust bag'] };
+
 const FALLBACK_CARE: Record<string, { material: string; care: string[] }> = {
-  fashion:    { material: 'Fabric blend',         care: ['Hand wash cold', 'Dry flat in shade', 'Iron on low heat'] },
-  footwear:   { material: 'Premium upper',        care: ['Wipe clean with dry cloth', 'Store away from sunlight', 'Use shoe conditioner regularly'] },
-  bags:       { material: 'Quality material',     care: ['Spot clean only', 'Store stuffed to keep shape', 'Keep away from moisture'] },
-  jewellery:  { material: 'Metal alloy finish',   care: ['Wipe dry after wear', 'Store in pouch separately', 'Avoid perfume and water'] },
-  accessories:{ material: 'Mixed materials',      care: ['Wipe clean gently', 'Keep away from moisture', 'Store flat or hanging'] },
-  beauty:     { material: 'Cosmetic formulation', care: ['Keep in cool dry place', 'Close tightly after use', 'Check expiry before use'] },
-  hair:       { material: 'Premium hair fibre',   care: ['Wash with gentle shampoo', 'Condition after every wash', 'Store on a wig stand'] },
-  home:       { material: 'Natural textile',      care: ['Spot clean or hand wash', 'Avoid direct sunlight', 'Air dry completely'] },
-  kids:       { material: 'Child-safe fabric',    care: ['Machine wash gentle cycle', 'Tumble dry low', 'No harsh chemicals'] },
-  men:        { material: 'Quality fabric',       care: ['Hand wash or dry clean', 'Hang to dry naturally', 'Steam or iron if needed'] },
-  crafts:     { material: 'Handcrafted material', care: ['Handle with care', 'Dust with soft dry cloth', 'Keep away from moisture'] },
+  heels:     SHOE_CARE,
+  flats:     SHOE_CARE,
+  handbags:  BAG_CARE,
+  tote:      BAG_CARE,
+  crossbody: BAG_CARE,
+  mini:      BAG_CARE,
 };
 
 export default function ProductDetailsAccordion({ product }: Props) {
@@ -71,7 +69,7 @@ export default function ProductDetailsAccordion({ product }: Props) {
       setCareData(json);
     } catch {
       // Fall back to category defaults
-      setCareData(FALLBACK_CARE[product.category] ?? FALLBACK_CARE.fashion);
+      setCareData(FALLBACK_CARE[product.category] ?? FALLBACK_CARE.heels);
     } finally {
       setCareLoading(false);
     }

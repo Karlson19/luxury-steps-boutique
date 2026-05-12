@@ -7,13 +7,15 @@ import {
   Minus,
   Plus,
   Truck,
-  RefreshCw,
-  Shield,
+  MapPin,
+  Wallet,
   QrCode,
   Share,
 } from 'lucide-react';
 import { Product } from '@/types';
 import { toast } from '@/components/ui/Toast';
+import { singleProductOrderLink } from '@/lib/whatsapp';
+import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import SizeGuideModal from './SizeGuideModal';
 import QRCodeModal from '../admin/QRCodeModal';
 
@@ -90,6 +92,7 @@ interface Props {
   colorError: boolean;
   added: boolean;
   onAddToCart: () => void;
+  onWhatsAppOrder: () => void;
 }
 
 const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoPanel(
@@ -105,6 +108,7 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
     colorError,
     added,
     onAddToCart,
+    onWhatsAppOrder,
   },
   ctaRef,
 ) {
@@ -414,6 +418,18 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
           </button>
         )}
 
+        {/* Order on WhatsApp — primary checkout path for single-item buyers */}
+        {product.in_stock && (
+          <button
+            onClick={onWhatsAppOrder}
+            className="w-full flex items-center justify-center gap-2.5 rounded-full py-4 text-[11px] sm:text-xs uppercase tracking-[0.25em] bg-[#0D6E4B] text-white hover:bg-[#0B5C3F] active:scale-[0.98] transition-all duration-300 shadow-lg shadow-[#0D6E4B]/20"
+            style={{ fontWeight: 600 }}
+          >
+            <WhatsAppIcon size={16} className="text-white" />
+            Order on WhatsApp
+          </button>
+        )}
+
         <div className="flex items-center gap-3 w-full mt-1">
           <button
             onClick={handleShare}
@@ -435,14 +451,17 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
 
       <div className="grid grid-cols-3 gap-3 py-6 border-t border-b border-gray-100 my-4">
         {[
-          { Icon: Truck, label: 'Nationwide Delivery' },
-          { Icon: RefreshCw, label: 'Easy Returns' },
-          { Icon: Shield, label: 'Secure Checkout' },
-        ].map(({ Icon, label }) => (
-          <div key={label} className="flex flex-col items-center gap-2 text-center">
+          { Icon: MapPin, title: 'Pickup',   sub: 'KNUST & Ashaiman' },
+          { Icon: Truck,  title: 'Delivery', sub: '1–3 days, Ghana-wide' },
+          { Icon: Wallet, title: 'Pay',      sub: 'MOMO · Bank · Cash' },
+        ].map(({ Icon, title, sub }) => (
+          <div key={title} className="flex flex-col items-center gap-1.5 text-center">
             <Icon className="w-4 h-4 text-[#C9956C]" strokeWidth={1.5} />
-            <span className="text-[9px] text-gray-500 uppercase tracking-widest max-w-[80px] leading-relaxed font-bold">
-              {label}
+            <span className="text-[10px] text-[#1A0A0A] uppercase tracking-widest font-bold leading-none">
+              {title}
+            </span>
+            <span className="text-[9px] text-gray-500 leading-tight px-1">
+              {sub}
             </span>
           </div>
         ))}

@@ -2,20 +2,24 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, Footprints } from 'lucide-react';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
-const ROWS = [
-  { size: 'XS', bust: '78–82', waist: '60–64', hips: '86–90' },
-  { size: 'S', bust: '82–86', waist: '64–68', hips: '90–94' },
-  { size: 'M', bust: '86–90', waist: '68–72', hips: '94–98' },
-  { size: 'L', bust: '90–96', waist: '72–78', hips: '98–104' },
-  { size: 'XL', bust: '96–102', waist: '78–84', hips: '104–110' },
-  { size: 'XXL', bust: '102–108', waist: '84–90', hips: '110–116' },
+// Standard women's shoe size conversion.
+// Foot length in cm is the most reliable measurement — measure heel to longest toe.
+const SHOE_SIZES = [
+  { eu: '36',   uk: '3',   us: '5',   foot: '22.5' },
+  { eu: '37',   uk: '4',   us: '6',   foot: '23.5' },
+  { eu: '38',   uk: '5',   us: '7',   foot: '24.0' },
+  { eu: '39',   uk: '6',   us: '8',   foot: '24.5' },
+  { eu: '40',   uk: '6.5', us: '8.5', foot: '25.0' },
+  { eu: '41',   uk: '7',   us: '9',   foot: '25.5' },
+  { eu: '42',   uk: '8',   us: '10',  foot: '26.5' },
+  { eu: '43',   uk: '9',   us: '11',  foot: '27.0' },
 ];
 
 export default function SizeGuideModal({ open, onClose }: Props) {
@@ -39,11 +43,11 @@ export default function SizeGuideModal({ open, onClose }: Props) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] bg-[#1A0A10]/70 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in"
+      className="fixed inset-0 z-[80] bg-[#1A0A0A]/70 backdrop-blur-sm flex items-end sm:items-center justify-center animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl p-6 sm:p-8 max-h-[85vh] overflow-y-auto animate-scale-in"
+        className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl p-6 sm:p-8 max-h-[88vh] overflow-y-auto animate-scale-in"
         onClick={(e) => e.stopPropagation()}
         style={{ fontFamily: 'var(--font-jost)' }}
       >
@@ -55,83 +59,72 @@ export default function SizeGuideModal({ open, onClose }: Props) {
           <X className="w-4 h-4 text-ink-500" />
         </button>
 
+        <div className="flex items-center gap-2 mb-1">
+          <Footprints className="w-4 h-4 text-[#C9956C]" strokeWidth={1.75} />
+          <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#C9956C]">
+            Women&apos;s Shoe Sizes
+          </p>
+        </div>
         <h3
-          className="text-2xl mb-1 text-ink"
+          className="text-2xl mb-2 text-ink"
           style={{ fontFamily: 'var(--font-cormorant)', fontWeight: 600 }}
         >
           Size Guide
         </h3>
-        <p className="text-xs text-ink-500 mb-5" style={{ fontWeight: 300 }}>
-          All measurements in centimetres.
+        <p className="text-xs text-ink-500 mb-5 leading-relaxed" style={{ fontWeight: 300 }}>
+          Measure your foot from heel to longest toe in centimetres, then match it to the
+          closest row below. We size in EU — half-sizes round up.
         </p>
 
         <div className="rounded-xl border border-bone overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-burgundy text-white">
-                <th
-                  className="px-4 py-3 text-xs uppercase tracking-wider"
-                  style={{ fontWeight: 500 }}
-                >
-                  Size
-                </th>
-                <th
-                  className="px-4 py-3 text-xs uppercase tracking-wider"
-                  style={{ fontWeight: 500 }}
-                >
-                  Bust
-                </th>
-                <th
-                  className="px-4 py-3 text-xs uppercase tracking-wider"
-                  style={{ fontWeight: 500 }}
-                >
-                  Waist
-                </th>
-                <th
-                  className="px-4 py-3 text-xs uppercase tracking-wider"
-                  style={{ fontWeight: 500 }}
-                >
-                  Hips
-                </th>
+              <tr className="bg-[#C8102E] text-white">
+                <th className="px-3 py-3 text-[10px] uppercase tracking-wider" style={{ fontWeight: 600 }}>EU</th>
+                <th className="px-3 py-3 text-[10px] uppercase tracking-wider" style={{ fontWeight: 600 }}>UK</th>
+                <th className="px-3 py-3 text-[10px] uppercase tracking-wider" style={{ fontWeight: 600 }}>US</th>
+                <th className="px-3 py-3 text-[10px] uppercase tracking-wider" style={{ fontWeight: 600 }}>Foot (cm)</th>
               </tr>
             </thead>
             <tbody>
-              {ROWS.map((r, i) => (
+              {SHOE_SIZES.map((r, i) => (
                 <tr
-                  key={r.size}
-                  className={
-                    i % 2 === 0
-                      ? 'bg-white text-ink'
-                      : 'bg-champagne text-ink'
-                  }
+                  key={r.eu}
+                  className={i % 2 === 0 ? 'bg-white text-ink' : 'bg-champagne text-ink'}
                 >
-                  <td
-                    className="px-4 py-3 text-sm"
-                    style={{ fontWeight: 500 }}
-                  >
-                    {r.size}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-ink-500">{r.bust}</td>
-                  <td className="px-4 py-3 text-sm text-ink-500">{r.waist}</td>
-                  <td className="px-4 py-3 text-sm text-ink-500">{r.hips}</td>
+                  <td className="px-3 py-2.5 text-sm" style={{ fontWeight: 600 }}>{r.eu}</td>
+                  <td className="px-3 py-2.5 text-sm text-ink-500">{r.uk}</td>
+                  <td className="px-3 py-2.5 text-sm text-ink-500">{r.us}</td>
+                  <td className="px-3 py-2.5 text-sm text-ink-500 tabular-nums">{r.foot}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
+        <div className="mt-5 rounded-xl bg-rose-soft border border-bone p-4">
+          <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-[#7B1818] mb-2">
+            Measuring tips
+          </p>
+          <ul className="space-y-1.5 text-xs text-ink-500 leading-relaxed" style={{ fontWeight: 300 }}>
+            <li className="flex gap-2"><span className="text-[#C9956C]">✦</span><span>Measure in the evening — feet swell slightly during the day.</span></li>
+            <li className="flex gap-2"><span className="text-[#C9956C]">✦</span><span>Stand on a sheet of paper, mark heel and longest toe, measure between.</span></li>
+            <li className="flex gap-2"><span className="text-[#C9956C]">✦</span><span>If between sizes, size up for closed-toe and heels, down for sandals.</span></li>
+          </ul>
+        </div>
+
         <p className="text-xs text-ink-500 mt-5 leading-relaxed">
           Still unsure?{' '}
           <a
-            href="https://wa.me/233599670944?text=Hi!%20I%27d%20like%20personal%20styling%20advice%20about%20sizing."
+            href="https://wa.me/233599670944?text=Hi!%20I%27d%20like%20personal%20sizing%20advice."
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0D6E4B]"
+            className="text-[#C8102E] hover:text-[#7B1818] transition-colors"
             style={{ fontWeight: 600 }}
           >
-            Message us on WhatsApp
+            Message Rahinatu on WhatsApp
           </a>{' '}
-          for personal styling advice.
+          — she&apos;ll help you pick the right size.
         </p>
       </div>
     </div>,

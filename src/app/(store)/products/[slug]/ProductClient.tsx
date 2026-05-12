@@ -9,11 +9,14 @@ import { useCartStore } from '@/store/cart';
 import { useWishlistStore } from '@/store/wishlist';
 import { useRecentlyViewedStore } from '@/store/recentlyViewed';
 import { seedProducts } from '@/data/seed';
+import { singleProductOrderLink } from '@/lib/whatsapp';
 import { toast } from '@/components/ui/Toast';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import ProductInfoPanel from '@/components/product/ProductInfoPanel';
 import ProductDetailsAccordion from '@/components/product/ProductDetailsAccordion';
+import ProductReviews from '@/components/product/ProductReviews';
 import RelatedProducts from '@/components/product/RelatedProducts';
+import RecentlyViewed from '@/components/products/RecentlyViewed';
 import StickyBuyBar from '@/components/product/StickyBuyBar';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -127,6 +130,20 @@ export default function ProductDetailPage() {
     window.dispatchEvent(new Event('cart:open'));
   }
 
+  function handleWhatsAppOrder() {
+    if (!product) return;
+    if (!requireOptions()) return;
+    const url = singleProductOrderLink(
+      product.name,
+      product.price,
+      qty,
+      product.slug,
+      selectedSize ?? undefined,
+      selectedColor ?? undefined,
+    );
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   function handleWishToggle() {
     if (!product) return;
     toggleWish(product);
@@ -236,15 +253,24 @@ export default function ProductDetailPage() {
               
               added={added}
               onAddToCart={handleAddToCart}
+              onWhatsAppOrder={handleWhatsAppOrder}
             />
           </div>
         </div>
       </section>
 
       <ProductDetailsAccordion product={product} />
+
+      <section className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10">
+        <ProductReviews productId={product.id} productName={product.name} />
+      </section>
+
       {related.length > 0 && <RelatedProducts products={related} />}
 
-      {/* Note: I didn't add color to StickyBuyBar yet. If it complains, we can update it, but it should be fine. */}
+      <section className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10 py-10 border-t border-bone">
+        <RecentlyViewed excludeId={product.id} />
+      </section>
+
       <StickyBuyBar
         product={product}
         qty={qty}
