@@ -179,7 +179,8 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
       : description;
 
   const stockCount = product.stock_count;
-  const lowStock = typeof stockCount === 'number' && stockCount > 0 && stockCount < 10;
+  const hasStockCount = typeof stockCount === 'number' && stockCount > 0;
+  const lowStock = hasStockCount && (stockCount as number) <= 3;
 
   const productUrl =
     typeof window !== 'undefined'
@@ -411,9 +412,16 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
               <span className="text-[11px] uppercase tracking-wider font-bold text-emerald-700">
                 In Stock
               </span>
-              {lowStock && (
-                <span className="text-[11px] text-[#C9956C] ml-1 font-medium">
-                  · Only {stockCount} left
+              {hasStockCount && (
+                <span
+                  className={`text-[11px] ml-1 ${
+                    lowStock ? 'text-[#C8102E] font-bold' : 'text-gray-500 font-medium'
+                  }`}
+                >
+                  ·{' '}
+                  {lowStock
+                    ? `Only ${stockCount} left`
+                    : `${stockCount} ${stockCount === 1 ? 'piece' : 'pieces'} available`}
                 </span>
               )}
             </>
