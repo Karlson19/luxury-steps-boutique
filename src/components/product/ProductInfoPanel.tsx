@@ -136,7 +136,7 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
   const productUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/products/${product.slug}`
-      : `https://luxurystepsboutique.vercel.app/products/${product.slug}`;
+      : `https://luxury-steps-boutique.vercel.app/products/${product.slug}`;
 
   const handleShare = async () => {
     if (navigator.share) {

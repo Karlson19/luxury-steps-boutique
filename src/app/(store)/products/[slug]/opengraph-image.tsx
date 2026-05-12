@@ -9,7 +9,7 @@ const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : 'https://luxurystepsboutique.vercel.app');
+    : 'https://luxury-steps-boutique.vercel.app');
 
 // Max image size the Edge runtime can comfortably embed (~500KB).
 // Anything larger is dropped and we render a clean LSB placeholder
@@ -145,7 +145,7 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
                   textTransform: 'uppercase',
                 }}
               >
-                luxurystepsboutique.vercel.app
+                luxury-steps-boutique.vercel.app
               </div>
             </div>
           </div>
