@@ -15,7 +15,6 @@ import {
 import { Product } from '@/types';
 import { toast } from '@/components/ui/Toast';
 import { sortSizes } from '@/lib/utils';
-import { singleProductOrderLink } from '@/lib/whatsapp';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import SizeGuideModal from './SizeGuideModal';
 import QRCodeModal from '../admin/QRCodeModal';
