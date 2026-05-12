@@ -5,8 +5,7 @@ export const alt = 'Luxury Steps Boutique';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-// Defensive defaults so the route NEVER throws at module level.
-// Edge runtime treats top-level throws as a hard fail (returns 200 + 0 bytes).
+// Defensive defaults so the route never throws at module load.
 const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? '';
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
@@ -14,7 +13,6 @@ interface ProductRow {
   name: string;
   category: string;
   price: number;
-  images: string[] | null;
 }
 
 async function fetchProduct(slug: string): Promise<ProductRow | null> {
@@ -23,7 +21,7 @@ async function fetchProduct(slug: string): Promise<ProductRow | null> {
     const url =
       `${SUPABASE_URL}/rest/v1/products` +
       `?slug=eq.${encodeURIComponent(slug)}` +
-      `&select=name,category,price,images` +
+      `&select=name,category,price` +
       `&limit=1`;
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 2500);
@@ -34,7 +32,6 @@ async function fetchProduct(slug: string): Promise<ProductRow | null> {
         Accept: 'application/json',
       },
       signal: ctrl.signal,
-      // Edge cache the same request for an hour
       next: { revalidate: 3600 },
     });
     clearTimeout(t);
@@ -46,95 +43,32 @@ async function fetchProduct(slug: string): Promise<ProductRow | null> {
   }
 }
 
-// Quick HEAD probe to make sure the product photo is small enough to embed
-// in the OG card without busting the edge runtime memory budget.
-const MAX_IMAGE_BYTES = 500_000;
-
-async function productImageSafe(url: string | undefined): Promise<string | null> {
-  if (!url || !url.startsWith('http')) return null;
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 1500);
-    const res = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
-    clearTimeout(t);
-    if (!res.ok) return null;
-    const len = parseInt(res.headers.get('content-length') || '0', 10);
-    return len > 0 && len <= MAX_IMAGE_BYTES ? url : null;
-  } catch {
-    return null;
-  }
-}
-
-// Branded placeholder card — used both as the "no product photo" fallback
-// AND as the absolute-error fallback so the route always returns a valid PNG.
-function BrandFallback({ subtitle }: { subtitle: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        width: 1200,
-        height: 630,
-        background: '#C8102E',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: 18,
-        fontFamily: 'serif',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 168,
-          fontWeight: 700,
-          color: '#C9956C',
-          letterSpacing: 14,
-          fontStyle: 'italic',
-        }}
-      >
-        L · S · B
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          color: '#FFFAF8',
-          letterSpacing: 10,
-          textTransform: 'uppercase',
-          fontWeight: 600,
-          fontFamily: 'sans-serif',
-        }}
-      >
-        Luxury Steps Boutique
-      </div>
-      <div
-        style={{
-          fontSize: 14,
-          color: 'rgba(255,250,248,0.65)',
-          letterSpacing: 4,
-          textTransform: 'uppercase',
-          fontFamily: 'sans-serif',
-          marginTop: 4,
-        }}
-      >
-        {subtitle}
-      </div>
-    </div>
-  );
-}
+const CATEGORY_LABEL: Record<string, string> = {
+  heels:     'Heels',
+  flats:     'Flats & Slippers',
+  handbags:  'Handbags',
+  tote:      'Tote Bags',
+  crossbody: 'Crossbody',
+  mini:      'Mini Bags',
+};
 
 export default async function OGImage({ params }: { params: { slug: string } }) {
-  // EVERYTHING is wrapped in try/catch so any failure still returns a
-  // valid PNG. A 0-byte response is the worst outcome — scrapers reject it.
+  // Self-contained, two-panel branded card. NO external image is embedded
+  // inside ImageResponse — that's the class of bug that returns 0-byte PNGs
+  // when the upstream image is slow / unreachable / odd-content-type.
+  // Product photo lives on the page itself; the OG card carries the brand.
+  let product: ProductRow | null = null;
   try {
-    const product = await fetchProduct(params.slug);
+    product = await fetchProduct(params.slug);
+  } catch {
+    product = null;
+  }
 
-    if (!product) {
-      return new ImageResponse(<BrandFallback subtitle="Premium shoes & bags · Ghana" />, {
-        ...size,
-      });
-    }
+  const productName = product?.name ?? 'Luxury Steps Boutique';
+  const category = product?.category ? (CATEGORY_LABEL[product.category] ?? product.category) : '';
+  const priceLabel = product ? `GHS ${product.price.toLocaleString()}` : 'Premium shoes & bags';
 
-    const safeImage = await productImageSafe(product.images?.[0]);
-
+  try {
     return new ImageResponse(
       (
         <div
@@ -142,122 +76,127 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
             display: 'flex',
             width: 1200,
             height: 630,
-            background: '#FFFAF8',
             fontFamily: 'sans-serif',
           }}
         >
-          {/* Left: product photo or LSB placeholder block */}
-          {safeImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={safeImage}
-              alt=""
-              width={630}
-              height={630}
-              style={{ width: 630, height: 630, objectFit: 'cover', flexShrink: 0 }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 630,
-                height: 630,
-                flexShrink: 0,
-                background: '#FFE0DA',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                gap: 8,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 124,
-                  color: '#C9956C',
-                  fontWeight: 700,
-                  letterSpacing: 10,
-                  fontFamily: 'serif',
-                  fontStyle: 'italic',
-                }}
-              >
-                L · S · B
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  color: '#C9956C',
-                  letterSpacing: 6,
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                }}
-              >
-                Luxury Steps
-              </div>
-            </div>
-          )}
-
-          {/* Right: scarlet info panel */}
+          {/* LEFT — ivory plate with editorial wordmark + product name */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              flex: 1,
-              background: '#C8102E',
-              padding: '52px 48px',
+              width: 600,
+              height: 630,
+              background: '#FFFAF8',
+              padding: '60px 56px',
               justifyContent: 'space-between',
             }}
           >
-            <div
-              style={{
-                fontSize: 14,
-                color: '#C9956C',
-                letterSpacing: 6,
-                textTransform: 'uppercase',
-                fontWeight: 700,
-              }}
-            >
-              Luxury Steps Boutique
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Top eyebrow */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 36, height: 1.5, background: '#C9956C' }} />
               <div
                 style={{
-                  fontSize: product.name.length > 30 ? 36 : 44,
-                  fontWeight: 900,
-                  color: '#FFFFFF',
-                  lineHeight: 1.2,
+                  fontSize: 13,
+                  color: '#A87850',
+                  letterSpacing: 5,
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
                 }}
               >
-                {product.name}
+                Luxury Steps Boutique
               </div>
-              {product.category && (
-                <div
-                  style={{
-                    fontSize: 14,
-                    color: 'rgba(201,149,108,0.95)',
-                    letterSpacing: 4,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  {product.category}
-                </div>
-              )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 40, fontWeight: 900, color: '#FFFFFF' }}>
-                GHS {product.price.toLocaleString()}
+            {/* Product name as the editorial headline */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: '#7B1818',
+                  letterSpacing: 5,
+                  textTransform: 'uppercase',
+                  fontWeight: 700,
+                }}
+              >
+                {category || 'New Arrival'}
+              </div>
+              <div
+                style={{
+                  fontSize: productName.length > 28 ? 52 : 64,
+                  fontWeight: 700,
+                  color: '#1A0A0A',
+                  lineHeight: 1.05,
+                  letterSpacing: -1,
+                  fontFamily: 'serif',
+                }}
+              >
+                {productName}
+              </div>
+            </div>
+
+            {/* Price + footer */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div
+                style={{
+                  fontSize: 36,
+                  fontWeight: 700,
+                  color: '#C8102E',
+                  letterSpacing: -0.5,
+                }}
+              >
+                {priceLabel}
               </div>
               <div
                 style={{
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.55)',
-                  letterSpacing: 2,
+                  color: '#7A5050',
+                  letterSpacing: 3,
                   textTransform: 'uppercase',
+                  fontWeight: 600,
                 }}
               >
-                luxurystepsboutique.vercel.app
+                KNUST Campus · Ashaiman · Ghana
               </div>
+            </div>
+          </div>
+
+          {/* RIGHT — scarlet plate with the L·S·B monogram */}
+          <div
+            style={{
+              display: 'flex',
+              width: 600,
+              height: 630,
+              background: '#C8102E',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 180,
+                fontWeight: 700,
+                color: '#C9956C',
+                letterSpacing: 14,
+                fontStyle: 'italic',
+                fontFamily: 'serif',
+                lineHeight: 1,
+              }}
+            >
+              L · S · B
+            </div>
+            <div
+              style={{
+                fontSize: 16,
+                color: '#FFFAF8',
+                letterSpacing: 8,
+                textTransform: 'uppercase',
+                fontWeight: 600,
+                opacity: 0.85,
+              }}
+            >
+              Boutique
             </div>
           </div>
         </div>
@@ -265,8 +204,48 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
       { ...size },
     );
   } catch {
-    return new ImageResponse(<BrandFallback subtitle="Premium shoes & bags · Ghana" />, {
-      ...size,
-    });
+    // Last-resort fallback: pure scarlet card with the monogram only.
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            display: 'flex',
+            width: 1200,
+            height: 630,
+            background: '#C8102E',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: 18,
+            fontFamily: 'sans-serif',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 168,
+              fontWeight: 700,
+              color: '#C9956C',
+              letterSpacing: 14,
+              fontStyle: 'italic',
+              fontFamily: 'serif',
+            }}
+          >
+            L · S · B
+          </div>
+          <div
+            style={{
+              fontSize: 20,
+              color: '#FFFAF8',
+              letterSpacing: 10,
+              textTransform: 'uppercase',
+              fontWeight: 600,
+            }}
+          >
+            Luxury Steps Boutique
+          </div>
+        </div>
+      ),
+      { ...size },
+    );
   }
 }
