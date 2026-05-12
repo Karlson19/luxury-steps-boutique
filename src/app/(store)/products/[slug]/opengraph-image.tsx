@@ -1,55 +1,139 @@
 import { ImageResponse } from 'next/og';
-import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
 export const alt = 'Luxury Steps Boutique';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-// Edge-friendly Supabase client. Reads via the anon key (the products
-// table allows public SELECT under our RLS policy), so no service-role
-// secret is exposed to edge runtime.
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+// Defensive defaults so the route NEVER throws at module level.
+// Edge runtime treats top-level throws as a hard fail (returns 200 + 0 bytes).
+const SUPABASE_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? '';
+const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-// Max image size the Edge runtime can comfortably embed (~500KB).
-// Anything larger is dropped and we render a clean LSB placeholder
-// — better than the route returning 0 bytes and breaking the preview.
-const MAX_IMAGE_BYTES = 500_000;
+interface ProductRow {
+  name: string;
+  category: string;
+  price: number;
+  images: string[] | null;
+}
 
-async function imageIsLightEnough(url: string): Promise<boolean> {
+async function fetchProduct(slug: string): Promise<ProductRow | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return null;
   try {
+    const url =
+      `${SUPABASE_URL}/rest/v1/products` +
+      `?slug=eq.${encodeURIComponent(slug)}` +
+      `&select=name,category,price,images` +
+      `&limit=1`;
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 1800);
-    const res = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_ANON,
+        Authorization: `Bearer ${SUPABASE_ANON}`,
+        Accept: 'application/json',
+      },
+      signal: ctrl.signal,
+      // Edge cache the same request for an hour
+      next: { revalidate: 3600 },
+    });
     clearTimeout(t);
-    if (!res.ok) return false;
-    const size = parseInt(res.headers.get('content-length') || '0', 10);
-    return size > 0 && size <= MAX_IMAGE_BYTES;
+    if (!res.ok) return null;
+    const rows = (await res.json()) as ProductRow[];
+    return rows[0] ?? null;
   } catch {
-    return false;
+    return null;
   }
 }
 
-export default async function OGImage({ params }: { params: { slug: string } }) {
+// Quick HEAD probe to make sure the product photo is small enough to embed
+// in the OG card without busting the edge runtime memory budget.
+const MAX_IMAGE_BYTES = 500_000;
+
+async function productImageSafe(url: string | undefined): Promise<string | null> {
+  if (!url || !url.startsWith('http')) return null;
   try {
-    // Direct Supabase query — no HTTP hop through /api/products/[slug].
-    // Cuts ~150–300ms off cold-scrape latency, which is the difference
-    // between WhatsApp showing the preview and timing out.
-    const { data: product, error } = await supabase
-      .from('products')
-      .select('name, category, price, images')
-      .eq('slug', params.slug)
-      .single();
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 1500);
+    const res = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const len = parseInt(res.headers.get('content-length') || '0', 10);
+    return len > 0 && len <= MAX_IMAGE_BYTES ? url : null;
+  } catch {
+    return null;
+  }
+}
 
-    if (error || !product) throw new Error('not found');
+// Branded placeholder card — used both as the "no product photo" fallback
+// AND as the absolute-error fallback so the route always returns a valid PNG.
+function BrandFallback({ subtitle }: { subtitle: string }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        width: 1200,
+        height: 630,
+        background: '#C8102E',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        gap: 18,
+        fontFamily: 'serif',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 168,
+          fontWeight: 700,
+          color: '#C9956C',
+          letterSpacing: 14,
+          fontStyle: 'italic',
+        }}
+      >
+        L · S · B
+      </div>
+      <div
+        style={{
+          fontSize: 22,
+          color: '#FFFAF8',
+          letterSpacing: 10,
+          textTransform: 'uppercase',
+          fontWeight: 600,
+          fontFamily: 'sans-serif',
+        }}
+      >
+        Luxury Steps Boutique
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          color: 'rgba(255,250,248,0.65)',
+          letterSpacing: 4,
+          textTransform: 'uppercase',
+          fontFamily: 'sans-serif',
+          marginTop: 4,
+        }}
+      >
+        {subtitle}
+      </div>
+    </div>
+  );
+}
 
-    const rawImage: string | undefined = product.images?.[0];
-    const showImage = rawImage?.startsWith('http')
-      ? await imageIsLightEnough(rawImage)
-      : false;
+export default async function OGImage({ params }: { params: { slug: string } }) {
+  // EVERYTHING is wrapped in try/catch so any failure still returns a
+  // valid PNG. A 0-byte response is the worst outcome — scrapers reject it.
+  try {
+    const product = await fetchProduct(params.slug);
+
+    if (!product) {
+      return new ImageResponse(<BrandFallback subtitle="Premium shoes & bags · Ghana" />, {
+        ...size,
+      });
+    }
+
+    const safeImage = await productImageSafe(product.images?.[0]);
 
     return new ImageResponse(
       (
@@ -62,12 +146,14 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
             fontFamily: 'sans-serif',
           }}
         >
-          {/* ── Left: product photo or placeholder ── */}
-          {showImage ? (
+          {/* Left: product photo or LSB placeholder block */}
+          {safeImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={rawImage}
+              src={safeImage}
               alt=""
+              width={630}
+              height={630}
               style={{ width: 630, height: 630, objectFit: 'cover', flexShrink: 0 }}
             />
           ) : (
@@ -84,16 +170,33 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
                 gap: 8,
               }}
             >
-              <div style={{ fontSize: 88, color: '#C9956C', fontWeight: 900, letterSpacing: 4 }}>
-                LSB
+              <div
+                style={{
+                  fontSize: 124,
+                  color: '#C9956C',
+                  fontWeight: 700,
+                  letterSpacing: 10,
+                  fontFamily: 'serif',
+                  fontStyle: 'italic',
+                }}
+              >
+                L · S · B
               </div>
-              <div style={{ fontSize: 18, color: '#C9956C', letterSpacing: 6, textTransform: 'uppercase' }}>
-                Luxury Steps Boutique
+              <div
+                style={{
+                  fontSize: 18,
+                  color: '#C9956C',
+                  letterSpacing: 6,
+                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                }}
+              >
+                Luxury Steps
               </div>
             </div>
           )}
 
-          {/* ── Right: info panel ── */}
+          {/* Right: scarlet info panel */}
           <div
             style={{
               display: 'flex',
@@ -148,7 +251,7 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
               <div
                 style={{
                   fontSize: 12,
-                  color: 'rgba(255,255,255,0.45)',
+                  color: 'rgba(255,255,255,0.55)',
                   letterSpacing: 2,
                   textTransform: 'uppercase',
                 }}
@@ -159,33 +262,11 @@ export default async function OGImage({ params }: { params: { slug: string } }) 
           </div>
         </div>
       ),
-      { width: 1200, height: 630 }
+      { ...size },
     );
   } catch {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            display: 'flex',
-            width: 1200,
-            height: 630,
-            background: '#C8102E',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: 16,
-            fontFamily: 'sans-serif',
-          }}
-        >
-          <div style={{ fontSize: 64, fontWeight: 900, color: '#FFFFFF', letterSpacing: 6 }}>
-            Luxury Steps Boutique
-          </div>
-          <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', letterSpacing: 4 }}>
-            PREMIUM SHOES &amp; BAGS · GHANA
-          </div>
-        </div>
-      ),
-      { width: 1200, height: 630 }
-    );
+    return new ImageResponse(<BrandFallback subtitle="Premium shoes & bags · Ghana" />, {
+      ...size,
+    });
   }
 }
