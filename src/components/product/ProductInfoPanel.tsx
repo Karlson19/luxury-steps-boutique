@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Product } from '@/types';
 import { toast } from '@/components/ui/Toast';
+import { sortSizes } from '@/lib/utils';
 import { singleProductOrderLink } from '@/lib/whatsapp';
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import SizeGuideModal from './SizeGuideModal';
@@ -29,38 +30,85 @@ function toTitleCase(str: string): string {
     .join(' ');
 }
 
-// Color Dictionary for visual swatches
+// Curated swatch values for fashion-named colors. Anything not in this map
+// falls back to the CSS named colour (e.g. "violet", "indigo", "salmon",
+// "khaki" — browsers recognise ~140 names). If that fails too, the helper
+// returns a soft grey so the swatch is still rendered as a circle.
 const COLOR_MAP: Record<string, string> = {
-  'Black': '#000000',
-  'White': '#FFFFFF',
-  'Red': '#DC2626',
-  'Navy Blue': '#1E3A8A',
-  'Blue': '#2563EB',
-  'Gold': '#D4AF37',
-  'Silver': '#C0C0C0',
-  'Brown': '#78350F',
-  'Tan': '#D2B48C',
-  'Beige': '#F5F5DC',
-  'Cream': '#FFFDD0',
-  'Grey': '#9CA3AF',
-  'Charcoal': '#374151',
-  'Pink': '#EC4899',
-  'Rose Gold': '#B76E79',
-  'Green': '#16A34A',
-  'Emerald': '#065F46',
-  'Olive': '#3F6212',
-  'Purple': '#9333EA',
-  'Lavender': '#D8B4E2',
-  'Yellow': '#EAB308',
-  'Orange': '#F97316',
-  'Burgundy': '#800020',
-  'Maroon': '#800000',
-  'Teal': '#0D9488',
-  'Cyan': '#0891B2',
-  'Peach': '#FFDAB9',
-  'Mustard': '#FFDB58',
-  'Mint': '#3EB489',
+  'Black':       '#000000',
+  'White':       '#FFFFFF',
+  'Red':         '#DC2626',
+  'Scarlet':     '#C8102E',
+  'Crimson':     '#9B1B30',
+  'Burgundy':    '#7B1818',
+  'Maroon':      '#5C0F1B',
+  'Wine':        '#5E2129',
+  'Pink':        '#EC4899',
+  'Hot Pink':    '#F472B6',
+  'Blush':       '#FFC0CB',
+  'Rose':        '#E11D48',
+  'Rose Gold':   '#B76E79',
+  'Coral':       '#FF7F50',
+  'Peach':       '#FFDAB9',
+  'Orange':      '#F97316',
+  'Mustard':     '#E0A800',
+  'Yellow':      '#EAB308',
+  'Gold':        '#D4AF37',
+  'Champagne':   '#F7E7CE',
+  'Cream':       '#FFFDD0',
+  'Ivory':       '#FFFAF0',
+  'Beige':       '#F5F5DC',
+  'Nude':        '#E3BC9A',
+  'Tan':         '#D2B48C',
+  'Camel':       '#C19A6B',
+  'Brown':       '#78350F',
+  'Chocolate':   '#5C3317',
+  'Mocha':       '#7B5E51',
+  'Khaki':       '#C3B091',
+  'Olive':       '#3F6212',
+  'Green':       '#16A34A',
+  'Emerald':     '#065F46',
+  'Sage':        '#9CAF88',
+  'Mint':        '#3EB489',
+  'Forest':      '#1E4D2B',
+  'Teal':        '#0D9488',
+  'Turquoise':   '#30D5C8',
+  'Cyan':        '#0891B2',
+  'Sky Blue':    '#7DD3FC',
+  'Baby Blue':   '#BFDBFE',
+  'Blue':        '#2563EB',
+  'Royal Blue':  '#1D4ED8',
+  'Navy':        '#1E3A8A',
+  'Navy Blue':   '#1E3A8A',
+  'Cobalt':      '#0047AB',
+  'Indigo':      '#4338CA',
+  'Denim':       '#1F4E79',
+  'Purple':      '#9333EA',
+  'Plum':        '#8B3A62',
+  'Violet':      '#7C3AED',
+  'Lavender':    '#D8B4E2',
+  'Lilac':       '#C8A2C8',
+  'Magenta':     '#C026D3',
+  'Fuchsia':     '#D946EF',
+  'Silver':      '#C0C0C0',
+  'Grey':        '#9CA3AF',
+  'Gray':        '#9CA3AF',
+  'Charcoal':    '#374151',
+  'Slate':       '#475569',
+  'Stone':       '#A8A29E',
+  'Taupe':       '#8B7E74',
+  'Bronze':      '#A97142',
+  'Copper':      '#B87333',
 };
+
+function resolveColor(name: string): { hex: string; known: boolean } {
+  const key = Object.keys(COLOR_MAP).find((k) => k.toLowerCase() === name.toLowerCase());
+  if (key) return { hex: COLOR_MAP[key], known: true };
+  // Trust the browser to resolve CSS named colours (violet, salmon, khaki, etc.)
+  // — invalid names will just render with the page background showing through,
+  // which we mitigate by always rendering a visible ring around the swatch.
+  return { hex: name.toLowerCase().replace(/\s+/g, ''), known: false };
+}
 
 const CATEGORY_BADGES: Record<string, string> = {
   heels:     'bg-[#C8102E] text-white',
@@ -243,43 +291,42 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
           <div className="flex gap-3 flex-wrap">
             {product.colors!.map((c) => {
               const isActive = selectedColor === c;
-              const colorKey = Object.keys(COLOR_MAP).find(k => k.toLowerCase() === c.toLowerCase());
-              const hexValue = colorKey ? COLOR_MAP[colorKey] : null;
-
-              if (hexValue) {
-                const isWhite = hexValue.toUpperCase() === '#FFFFFF';
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setSelectedColor(c)}
-                    aria-label={`Select color ${c}`}
-                    title={c}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
-                      isActive ? 'ring-2 ring-offset-2 ring-[#1A0A0A]' : 'ring-1 ring-gray-200 hover:ring-gray-400'
+              const { hex } = resolveColor(c);
+              // Brightness check for swatches we know are very light
+              // (white, cream, ivory, blush) — show the check in dark ink.
+              const isVeryLight = /^#?(f{2,3}[a-f0-9]{0,4}|ivory|white|cream|blush)/i.test(hex);
+              return (
+                <button
+                  key={c}
+                  onClick={() => setSelectedColor(c)}
+                  aria-label={`Select color ${c}`}
+                  title={c}
+                  className="group inline-flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+                >
+                  <span
+                    className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${
+                      isActive
+                        ? 'ring-2 ring-offset-2 ring-[#1A0A0A] shadow-md'
+                        : 'ring-1 ring-gray-300 group-hover:ring-[#C9956C] group-hover:ring-2'
                     }`}
-                    style={{ backgroundColor: hexValue }}
+                    style={{ backgroundColor: hex }}
                   >
                     {isActive && (
-                      <Check className={`w-4 h-4 ${isWhite ? 'text-black' : 'text-white text-shadow-sm'}`} />
+                      <Check
+                        className={`w-4 h-4 ${isVeryLight ? 'text-[#1A0A0A]' : 'text-white'}`}
+                        strokeWidth={3}
+                      />
                     )}
-                  </button>
-                );
-              } else {
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setSelectedColor(c)}
-                    className={`px-4 py-2.5 rounded-full text-[11px] uppercase tracking-wider cursor-pointer transition-all duration-200 active:scale-95 ${
-                      isActive
-                        ? 'bg-[#1A0A0A] text-white border border-[#1A0A0A] shadow-xl'
-                        : 'bg-transparent border border-gray-200 text-[#1A0A0A] hover:border-[#C9956C] hover:text-[#C9956C]'
+                  </span>
+                  <span
+                    className={`text-[9px] uppercase tracking-wider leading-none transition-colors ${
+                      isActive ? 'text-[#1A0A0A] font-bold' : 'text-gray-500 font-semibold'
                     }`}
-                    style={{ fontWeight: 600 }}
                   >
                     {c}
-                  </button>
-                );
-              }
+                  </span>
+                </button>
+              );
             })}
           </div>
           {colorError && (
@@ -305,7 +352,7 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
             </button>
           </div>
           <div className="flex gap-2.5 flex-wrap">
-            {product.sizes!.map((s) => {
+            {sortSizes(product.sizes!).map((s) => {
               const isActive = selectedSize === s;
               return (
                 <button

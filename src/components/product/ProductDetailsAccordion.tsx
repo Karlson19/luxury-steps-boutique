@@ -13,6 +13,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Product } from '@/types';
+import { sortSizes } from '@/lib/utils';
 
 interface Props {
   product: Product;
@@ -127,7 +128,7 @@ export default function ProductDetailsAccordion({ product }: Props) {
           <p>
             Available sizes:{' '}
             <span className="text-ink" style={{ fontWeight: 500 }}>
-              {product.sizes!.join(', ')}
+              {sortSizes(product.sizes!).join(', ')}
             </span>
           </p>
           <a

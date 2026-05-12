@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Product } from '@/types';
 import { useCartStore } from '@/store/cart';
 import { useWishlistStore } from '@/store/wishlist';
+import { sortSizes } from '@/lib/utils';
 import { toast } from '@/components/ui/Toast';
 
 // ✨ NEW: Color Dictionary for visual swatches
@@ -296,7 +297,7 @@ export default function ProductCard({ product, priority, className = '' }: Props
                     </button>
                   </div>
                   <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                    {product.sizes!.map((size) => (
+                    {sortSizes(product.sizes!).map((size) => (
                       <button key={size} onClick={(e) => handleSizeSelect(size, e)} className="flex-shrink-0 min-w-[36px] h-8 px-3 rounded-lg border border-bone bg-white text-ink text-[11px] font-semibold hover:border-burgundy hover:text-burgundy active:bg-champagne-100 transition-all shadow-sm" style={{ fontFamily: 'var(--font-jost)' }}>
                         {size}
                       </button>

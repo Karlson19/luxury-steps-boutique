@@ -149,24 +149,39 @@ export default function ProductsClient({ initialProducts, initialCategory }: Pro
       {/* Hero banner */}
       <ProductsHero totalCount={initialProducts.length} />
 
-      {/* ─── SLEEK CATEGORY BAR ─── */}
-      {/* 🛠️ FIXED: Changed top values to account for navbar height and lowered z-index to 30 */}
-      <div className="sticky top-20 sm:top-24 lg:top-[104px] z-30 bg-champagne/90 backdrop-blur-xl border-b border-bone shadow-sm mt-6">
-        <div className="max-w-screen-xl mx-auto overflow-x-auto no-scrollbar px-4 sm:px-6 lg:px-10 py-3">
-          <div className="flex items-center gap-2 w-max lg:w-auto lg:flex-wrap lg:justify-center">
-            {CATEGORIES.map(({ value, label }) => {
+      {/* ─── CATEGORY PILL BAR ─── */}
+      <div className="sticky top-20 sm:top-24 lg:top-[104px] z-30 bg-champagne/85 backdrop-blur-xl border-b border-bone/70 shadow-[0_4px_20px_-12px_rgba(123,24,24,0.15)] mt-6">
+        <div className="max-w-screen-xl mx-auto overflow-x-auto no-scrollbar px-4 sm:px-6 lg:px-10 py-3.5">
+          <div className="flex items-center gap-2.5 w-max lg:w-auto lg:flex-wrap lg:justify-center">
+            {CATEGORIES.map(({ value, label, icon: Icon }) => {
               const active = category === value;
               return (
                 <button
                   key={value}
                   onClick={() => setCategory(value)}
-                  className={`flex-shrink-0 rounded-full px-5 py-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.15em] transition-all active:scale-95 whitespace-nowrap ${
+                  className={`group relative flex-shrink-0 inline-flex items-center gap-1.5 rounded-full pl-3 pr-4 py-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.18em] transition-all duration-300 ease-lux-out active:scale-95 whitespace-nowrap ${
                     active
-                      ? 'bg-burgundy text-white shadow-md shadow-burgundy/20 ring-1 ring-burgundy'
-                      : 'bg-white text-ink-500 border border-bone hover:border-burgundy/40 hover:text-burgundy shadow-sm'
+                      ? 'bg-gradient-to-br from-burgundy to-burgundy-dark text-white shadow-lg shadow-burgundy/25 ring-1 ring-burgundy-dark/40'
+                      : 'bg-white text-ink-500 border border-bone hover:border-burgundy/60 hover:text-burgundy hover:-translate-y-0.5 hover:shadow-md shadow-sm'
                   }`}
                 >
-                  {label}
+                  <span
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full transition-colors duration-300 ${
+                      active
+                        ? 'bg-white/15'
+                        : 'bg-rose-soft text-burgundy group-hover:bg-burgundy/10'
+                    }`}
+                  >
+                    <Icon
+                      size={11}
+                      strokeWidth={2.25}
+                      className={active ? 'text-white' : 'text-burgundy'}
+                    />
+                  </span>
+                  <span>{label}</span>
+                  {active && (
+                    <span className="absolute -bottom-[14px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-burgundy shadow-sm" />
+                  )}
                 </button>
               );
             })}
