@@ -15,7 +15,6 @@ import {
 import { Product } from '@/types';
 import { toast } from '@/components/ui/Toast';
 import { sortSizes } from '@/lib/utils';
-import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import SizeGuideModal from './SizeGuideModal';
 import QRCodeModal from '../admin/QRCodeModal';
 
@@ -139,7 +138,6 @@ interface Props {
   colorError: boolean;
   added: boolean;
   onAddToCart: () => void;
-  onWhatsAppOrder: () => void;
 }
 
 const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoPanel(
@@ -155,7 +153,6 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
     colorError,
     added,
     onAddToCart,
-    onWhatsAppOrder,
   },
   ctaRef,
 ) {
@@ -461,18 +458,6 @@ const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoP
             className="w-full rounded-full py-4 sm:py-5 bg-gray-100 text-gray-400 cursor-not-allowed text-[11px] uppercase tracking-[0.25em] font-bold"
           >
             Sold Out
-          </button>
-        )}
-
-        {/* Order on WhatsApp — primary checkout path for single-item buyers */}
-        {product.in_stock && (
-          <button
-            onClick={onWhatsAppOrder}
-            className="w-full flex items-center justify-center gap-2.5 rounded-full py-4 text-[11px] sm:text-xs uppercase tracking-[0.25em] bg-[#0D6E4B] text-white hover:bg-[#0B5C3F] active:scale-[0.98] transition-all duration-300 shadow-lg shadow-[#0D6E4B]/20"
-            style={{ fontWeight: 600 }}
-          >
-            <WhatsAppIcon size={16} className="text-white" />
-            Order on WhatsApp
           </button>
         )}
 

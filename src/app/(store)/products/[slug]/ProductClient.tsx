@@ -9,12 +9,10 @@ import { useCartStore } from '@/store/cart';
 import { useWishlistStore } from '@/store/wishlist';
 import { useRecentlyViewedStore } from '@/store/recentlyViewed';
 import { seedProducts } from '@/data/seed';
-import { singleProductOrderLink } from '@/lib/whatsapp';
 import { toast } from '@/components/ui/Toast';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import ProductInfoPanel from '@/components/product/ProductInfoPanel';
 import ProductDetailsAccordion from '@/components/product/ProductDetailsAccordion';
-import ProductReviews from '@/components/product/ProductReviews';
 import RelatedProducts from '@/components/product/RelatedProducts';
 import RecentlyViewed from '@/components/products/RecentlyViewed';
 import StickyBuyBar from '@/components/product/StickyBuyBar';
@@ -130,20 +128,6 @@ export default function ProductDetailPage() {
     window.dispatchEvent(new Event('cart:open'));
   }
 
-  function handleWhatsAppOrder() {
-    if (!product) return;
-    if (!requireOptions()) return;
-    const url = singleProductOrderLink(
-      product.name,
-      product.price,
-      qty,
-      product.slug,
-      selectedSize ?? undefined,
-      selectedColor ?? undefined,
-    );
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
-
   function handleWishToggle() {
     if (!product) return;
     toggleWish(product);
@@ -253,17 +237,12 @@ export default function ProductDetailPage() {
               
               added={added}
               onAddToCart={handleAddToCart}
-              onWhatsAppOrder={handleWhatsAppOrder}
             />
           </div>
         </div>
       </section>
 
       <ProductDetailsAccordion product={product} />
-
-      <section className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10">
-        <ProductReviews productId={product.id} productName={product.name} />
-      </section>
 
       {related.length > 0 && <RelatedProducts products={related} />}
 
