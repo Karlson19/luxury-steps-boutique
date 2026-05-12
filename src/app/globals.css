@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html {
+    scroll-behavior: smooth;
+    /* Sticky nav offset for anchor links */
+    scroll-padding-top: 96px;
+  }
+  /* Subtle text rendering for premium feel */
+  body { text-rendering: optimizeLegibility; }
+  /* Selection feels intentional, not browser default blue */
+  ::selection { background: #C8102E; color: #fff; }
+  /* Refined focus rings */
+  :focus-visible { outline: 2px solid #C8102E; outline-offset: 3px; border-radius: 4px; }
+
+  img { -webkit-touch-callout: none; }
+
+  /* Allow modern browsers to expose dynamic viewport height as --dvh */
+  :root {
+    --dvh: 100dvh;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  /* Fallback for older browsers that don't support dvh */
+  @supports not (height: 100dvh) {
+    :root { --dvh: 100vh; }
+  }
+
+  html, body {
+    /* Hard-stop any horizontal scroll bug from a child element overflowing */
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  body {
+    background-color: #FFFAF8;
+    color: #0D0D0D;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Stable scrollbar prevents layout shift between pages */
+    scrollbar-gutter: stable;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #D1C5BB; border-radius: 2px; }
+}
+
+@layer utilities {
+  /* Use these instead of min-h-screen / h-screen for full-bleed pages
+     that should not jump when mobile browser chrome appears/disappears. */
+  .min-h-dvh { min-height: 100vh; min-height: var(--dvh); }
+  .h-dvh { height: 100vh; height: var(--dvh); }
+  .min-h-svh { min-height: 100svh; }
+
+  /* Bottom-fixed elements that account for the mobile browser URL bar */
+  .pb-safe { padding-bottom: var(--safe-bottom); }
+  .bottom-safe { bottom: max(1rem, calc(var(--safe-bottom) + 0.5rem)); }
+
+  /* WhatsApp button: above bottom nav on mobile, normal position on desktop */
+  .whatsapp-float {
+    bottom: max(calc(3.5rem + env(safe-area-inset-bottom, 0px) + 0.75rem), 1rem);
+  }
+  @media (min-width: 768px) {
+    .whatsapp-float {
+      bottom: max(1rem, calc(var(--safe-bottom) + 0.5rem));
+    }
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 font-body font-semibold text-[11px] tracking-[0.2em] uppercase
+      text-dark bg-accent px-8 py-4
+      hover:bg-accent/90 active:scale-95
+      transition-all duration-200 cursor-pointer;
+  }
+
+  .btn-dark {
+    @apply inline-flex items-center justify-center gap-2 font-body font-semibold text-[11px] tracking-[0.2em] uppercase
+      text-white bg-dark px-8 py-4
+      hover:bg-primary active:scale-95
+      transition-all duration-200 cursor-pointer;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 font-body font-semibold text-[11px] tracking-[0.2em] uppercase
+      text-dark border border-dark px-8 py-4
+      hover:bg-dark hover:text-white active:scale-95
+      transition-all duration-200 cursor-pointer;
+  }
+
+  .input-field {
+    @apply w-full border border-blush rounded-xl px-4 py-3 font-body text-dark bg-surface text-base
+      focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10
+      transition-all duration-200 placeholder:text-muted/50;
+  }
+
+  .card {
+    @apply bg-surface rounded-2xl shadow-card transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+}
+
+/* ─── Premium animations ─── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes shine {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #EDE8E3 25%, #F5F3F0 50%, #EDE8E3 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+.animate-slide-up { animation: slide-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-slide-down { animation: slide-down 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-scale-in { animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-in { animation: fade-in 0.5s ease-out both; }
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 60ms; }
+.stagger-2 { animation-delay: 120ms; }
+.stagger-3 { animation-delay: 180ms; }
+.stagger-4 { animation-delay: 240ms; }
+.stagger-5 { animation-delay: 300ms; }
+.stagger-6 { animation-delay: 360ms; }
+
+/* Premium image zoom container */
+.zoom-container {
+  position: relative;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.zoom-img {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+.zoom-container:hover .zoom-img {
+  transform: scale(1.08);
+}
+
+/* Shine effect on premium buttons */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.4), transparent);
+  transform: translateX(-100%) skewX(-15deg);
+  transition: transform 0.8s;
+}
+.btn-shine:hover::after { transform: translateX(200%) skewX(-15deg); }
+
+/* Smooth gradient text */
+.text-gradient {
+  background: linear-gradient(120deg, #C8102E, #7B1818, #C9956C);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.3333%); }
+}
+@keyframes marquee-reverse {
+  0% { transform: translateX(-33.3333%); }
+  100% { transform: translateX(0); }
+}
+.animate-marquee { animation: marquee 30s linear infinite; }
+.animate-marquee-reverse { animation: marquee-reverse 30s linear infinite; }
+
+/* Kinetic letter rise — used for big editorial headlines */
+@keyframes kinetic-rise {
+  0% { transform: translateY(110%) skewY(6deg); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translateY(0) skewY(0); opacity: 1; }
+}
+
+/* Slow ambient drift for blur blobs */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(40px, -30px) scale(1.06); }
+  66% { transform: translate(-30px, 25px) scale(0.96); }
+}
+.animate-drift { animation: drift 18s ease-in-out infinite; }
+.animate-drift-slow { animation: drift 28s ease-in-out infinite; }
+
+/* Animated mesh gradient — used in CTA card */
+@keyframes mesh-shift {
+  0%, 100% { background-position: 0% 50%, 100% 50%, 50% 0%; }
+  50% { background-position: 100% 50%, 0% 50%, 50% 100%; }
+}
+
+/* Stroke-draw line in (use with stroke-dasharray) */
+@keyframes draw-line {
+  from { stroke-dashoffset: var(--len, 1200); }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Grain noise overlay for cinematic feel */
+.cinematic-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1   0 0 0 0 1   0 0 0 0 1   0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Smooth count-up tick (no visual jitter on tabular numerals) */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Hide scrollbar everywhere when needed */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Smooth focus states */
+*:focus-visible {
+  outline: 2px solid #C8102E;
+  outline-offset: 2px;
+  border-radius: 4px;
+}

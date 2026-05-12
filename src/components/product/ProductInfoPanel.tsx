@@ -1,0 +1,464 @@
+'use client';
+
+import { useState, forwardRef } from 'react';
+import {
+  ShoppingBag,
+  Check,
+  Minus,
+  Plus,
+  Truck,
+  RefreshCw,
+  Shield,
+  QrCode,
+  Share,
+} from 'lucide-react';
+import { Product } from '@/types';
+import { toast } from '@/components/ui/Toast';
+import SizeGuideModal from './SizeGuideModal';
+import QRCodeModal from '../admin/QRCodeModal';
+
+// ✨ NEW: Helper to capitalize the product name
+function toTitleCase(str: string): string {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// Color Dictionary for visual swatches
+const COLOR_MAP: Record<string, string> = {
+  'Black': '#000000',
+  'White': '#FFFFFF',
+  'Red': '#DC2626',
+  'Navy Blue': '#1E3A8A',
+  'Blue': '#2563EB',
+  'Gold': '#D4AF37',
+  'Silver': '#C0C0C0',
+  'Brown': '#78350F',
+  'Tan': '#D2B48C',
+  'Beige': '#F5F5DC',
+  'Cream': '#FFFDD0',
+  'Grey': '#9CA3AF',
+  'Charcoal': '#374151',
+  'Pink': '#EC4899',
+  'Rose Gold': '#B76E79',
+  'Green': '#16A34A',
+  'Emerald': '#065F46',
+  'Olive': '#3F6212',
+  'Purple': '#9333EA',
+  'Lavender': '#D8B4E2',
+  'Yellow': '#EAB308',
+  'Orange': '#F97316',
+  'Burgundy': '#800020',
+  'Maroon': '#800000',
+  'Teal': '#0D9488',
+  'Cyan': '#0891B2',
+  'Peach': '#FFDAB9',
+  'Mustard': '#FFDB58',
+  'Mint': '#3EB489',
+};
+
+const CATEGORY_BADGES: Record<string, string> = {
+  heels:     'bg-[#C8102E] text-white',
+  flats:     'bg-[#C9956C] text-white',
+  handbags:  'bg-[#7B1818] text-white',
+  tote:      'bg-[#A87850] text-white',
+  crossbody: 'bg-[#E63950] text-white',
+  mini:      'bg-[#DCB089] text-white',
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  heels:     'Heels',
+  flats:     'Flats & Slippers',
+  handbags:  'Handbags',
+  tote:      'Tote Bags',
+  crossbody: 'Crossbody',
+  mini:      'Mini Bags',
+};
+
+interface Props {
+  product: Product;
+  qty: number;
+  setQty: (n: number) => void;
+  selectedSize: string | null;
+  setSelectedSize: (s: string | null) => void;
+  sizeError: boolean;
+  selectedColor: string | null;
+  setSelectedColor: (c: string | null) => void;
+  colorError: boolean;
+  added: boolean;
+  onAddToCart: () => void;
+}
+
+const ProductInfoPanel = forwardRef<HTMLDivElement, Props>(function ProductInfoPanel(
+  {
+    product,
+    qty,
+    setQty,
+    selectedSize,
+    setSelectedSize,
+    sizeError,
+    selectedColor,
+    setSelectedColor,
+    colorError,
+    added,
+    onAddToCart,
+  },
+  ctaRef,
+) {
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+
+  const hasSizes = !!(product.sizes && product.sizes.length > 0);
+  const hasColors = !!(product.colors && product.colors.length > 0);
+
+  const compare =
+    product.compare_price && product.compare_price > product.price
+      ? product.compare_price
+      : null;
+  const discountPct = compare
+    ? Math.round(((compare - product.price) / compare) * 100)
+    : null;
+
+  const description = product.description ?? '';
+  const isLongDesc = description.length > 180;
+  const visibleDesc =
+    isLongDesc && !descExpanded
+      ? description.slice(0, 180).trim() + '…'
+      : description;
+
+  const stockCount = product.stock_count;
+  const lowStock = typeof stockCount === 'number' && stockCount > 0 && stockCount < 10;
+
+  const productUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/products/${product.slug}`
+      : `https://luxurystepsboutique.vercel.app/products/${product.slug}`;
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Luxury Steps Boutique | ${toTitleCase(product.name)}`,
+          text: `Check out this ${toTitleCase(product.name)} on Luxury Steps Boutique.`,
+          url: productUrl,
+        });
+      } catch {}
+    } else {
+      navigator.clipboard.writeText(productUrl);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
+  return (
+    <div className="w-full animate-info-slide" style={{ fontFamily: 'var(--font-jost)' }}>
+      <style jsx>{`
+        @keyframes info-slide {
+          from { transform: translateX(20px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @media (min-width: 1024px) {
+          .animate-info-slide { animation: info-slide 350ms ease-out both; }
+        }
+      `}</style>
+
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <span
+          className={`rounded-full px-3 py-1 text-[9px] uppercase tracking-[0.2em] ${CATEGORY_BADGES[product.category] ?? 'bg-[#1A0A0A] text-white'}`}
+          style={{ fontWeight: 600 }}
+        >
+          {CATEGORY_LABELS[product.category] ?? product.category}
+        </span>
+        <span className="w-1 h-1 rounded-full bg-gray-300" />
+        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+          Ref. {product.id.slice(0, 8)}
+        </span>
+      </div>
+
+      {/* ✨ UPDATED: Product Name is now Title Cased */}
+      <h1
+        className="text-3xl sm:text-4xl lg:text-5xl text-[#1A0A0A] mb-4"
+        style={{ fontFamily: 'var(--font-cormorant)', fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.01em' }}
+      >
+        {toTitleCase(product.name)}
+      </h1>
+
+      {/* ✨ UPDATED: Premium split-style Price Block */}
+      <div className="flex items-end gap-3 mb-6 flex-wrap">
+        <div className="flex items-baseline gap-1">
+          <span className="text-sm font-semibold text-[#C8102E]/70 uppercase tracking-widest" style={{ fontFamily: 'var(--font-jost)' }}>
+            GHS
+          </span>
+          <span className="text-3xl sm:text-4xl text-[#C8102E] tabular-nums leading-none" style={{ fontFamily: 'var(--font-jost)', fontWeight: 700, letterSpacing: '-0.02em' }}>
+            {product.price.toLocaleString('en-GH', { minimumFractionDigits: 0 })}
+          </span>
+        </div>
+        
+        {compare && (
+          <>
+            <div className="flex items-baseline gap-0.5 line-through opacity-50 mb-1">
+              <span className="text-xs font-medium text-gray-500" style={{ fontFamily: 'var(--font-jost)' }}>GHS</span>
+              <span className="text-lg font-medium text-gray-500 tabular-nums" style={{ fontFamily: 'var(--font-jost)' }}>
+                {compare.toLocaleString('en-GH', { minimumFractionDigits: 0 })}
+              </span>
+            </div>
+            <span className="rounded-full px-2.5 py-1 text-[9px] font-bold tracking-wider uppercase bg-[#C9956C]/10 text-[#C9956C] mb-1.5">
+              −{discountPct}% OFF
+            </span>
+          </>
+        )}
+      </div>
+
+      {description && (
+        <div className="mb-8">
+          <p className="text-sm text-gray-600 leading-[1.8] font-light">
+            {visibleDesc}
+          </p>
+          {isLongDesc && (
+            <button
+              onClick={() => setDescExpanded((v) => !v)}
+              className="mt-2 text-[11px] uppercase tracking-widest text-[#C9956C] hover:text-[#1A0A0A] font-bold transition-colors"
+            >
+              {descExpanded ? 'Read less' : 'Read more'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* VISUAL COLOR SELECTOR */}
+      {hasColors && (
+        <div id="color-selector" className={`mb-6 transition-all duration-300 ${colorError ? 'animate-pulse' : ''}`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">
+              Color {selectedColor && <span className="text-[#1A0A0A] ml-1">: {selectedColor}</span>}
+            </span>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            {product.colors!.map((c) => {
+              const isActive = selectedColor === c;
+              const colorKey = Object.keys(COLOR_MAP).find(k => k.toLowerCase() === c.toLowerCase());
+              const hexValue = colorKey ? COLOR_MAP[colorKey] : null;
+
+              if (hexValue) {
+                const isWhite = hexValue.toUpperCase() === '#FFFFFF';
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setSelectedColor(c)}
+                    aria-label={`Select color ${c}`}
+                    title={c}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 active:scale-95 ${
+                      isActive ? 'ring-2 ring-offset-2 ring-[#1A0A0A]' : 'ring-1 ring-gray-200 hover:ring-gray-400'
+                    }`}
+                    style={{ backgroundColor: hexValue }}
+                  >
+                    {isActive && (
+                      <Check className={`w-4 h-4 ${isWhite ? 'text-black' : 'text-white text-shadow-sm'}`} />
+                    )}
+                  </button>
+                );
+              } else {
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setSelectedColor(c)}
+                    className={`px-4 py-2.5 rounded-full text-[11px] uppercase tracking-wider cursor-pointer transition-all duration-200 active:scale-95 ${
+                      isActive
+                        ? 'bg-[#1A0A0A] text-white border border-[#1A0A0A] shadow-xl'
+                        : 'bg-transparent border border-gray-200 text-[#1A0A0A] hover:border-[#C9956C] hover:text-[#C9956C]'
+                    }`}
+                    style={{ fontWeight: 600 }}
+                  >
+                    {c}
+                  </button>
+                );
+              }
+            })}
+          </div>
+          {colorError && (
+            <p className="text-[11px] text-[#B91C3A] mt-2 font-medium">
+              Please select a color to continue
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* SIZE SELECTOR */}
+      {hasSizes && (
+        <div id="size-selector" className={`mb-8 transition-all duration-300 ${sizeError ? 'animate-pulse' : ''}`}>
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">
+              Size {selectedSize && <span className="text-[#1A0A0A] ml-1">: {selectedSize}</span>}
+            </span>
+            <button
+              onClick={() => setSizeGuideOpen(true)}
+              className="text-[10px] uppercase tracking-widest text-[#C9956C] hover:text-[#1A0A0A] font-bold transition-colors"
+            >
+              Size Guide →
+            </button>
+          </div>
+          <div className="flex gap-2.5 flex-wrap">
+            {product.sizes!.map((s) => {
+              const isActive = selectedSize === s;
+              return (
+                <button
+                  key={s}
+                  onClick={() => setSelectedSize(s)}
+                  className={`min-w-[44px] h-[44px] px-3 rounded-full flex items-center justify-center text-xs cursor-pointer transition-all duration-200 active:scale-95 ${
+                    isActive
+                      ? 'bg-[#1A0A0A] text-white border border-[#1A0A0A] shadow-xl'
+                      : 'bg-transparent border border-gray-200 text-[#1A0A0A] hover:border-[#C9956C] hover:text-[#C9956C]'
+                  }`}
+                  style={{ fontWeight: 500 }}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+          {sizeError && (
+            <p className="text-[11px] text-[#B91C3A] mt-3 font-medium">
+              Please select a size to continue
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Quantity */}
+      <div className="flex items-center gap-5 mb-8">
+        <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">
+          Qty
+        </span>
+        <div className="flex items-center border border-gray-200 rounded-full overflow-hidden h-11">
+          <button
+            onClick={() => setQty(Math.max(1, qty - 1))}
+            disabled={qty <= 1}
+            className="w-11 h-full flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-30"
+          >
+            <Minus className="w-3.5 h-3.5 text-[#1A0A0A]" strokeWidth={2} />
+          </button>
+          <span className="w-10 text-center text-sm text-[#1A0A0A] tabular-nums font-medium">
+            {qty}
+          </span>
+          <button
+            onClick={() => setQty(qty + 1)}
+            disabled={typeof stockCount === 'number' && stockCount > 0 && qty >= stockCount}
+            className="w-11 h-full flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-30"
+          >
+            <Plus className="w-3.5 h-3.5 text-[#1A0A0A]" strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="flex items-center gap-2">
+          {product.in_stock ? (
+            <>
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-500 opacity-50 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-600" />
+              </span>
+              <span className="text-[11px] uppercase tracking-wider font-bold text-emerald-700">
+                In Stock
+              </span>
+              {lowStock && (
+                <span className="text-[11px] text-[#C9956C] ml-1 font-medium">
+                  · Only {stockCount} left
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-gray-400" />
+              <span className="text-[11px] uppercase tracking-wider font-bold text-gray-500">
+                Sold Out
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ─── CTA BLOCK ─── */}
+      <div ref={ctaRef} className="flex flex-col items-center gap-3 mb-8 w-full">
+        {product.in_stock ? (
+          <button
+            onClick={onAddToCart}
+            className={`w-full flex items-center justify-center gap-2.5 rounded-full py-4 sm:py-5 text-[11px] sm:text-xs uppercase tracking-[0.25em] transition-all duration-300 active:scale-[0.98] ${
+              added
+                ? 'bg-emerald-700 text-white shadow-xl shadow-emerald-700/20'
+                : 'bg-[#1A0A0A] text-white hover:bg-[#C9956C] hover:shadow-xl hover:shadow-[#C9956C]/20'
+            }`}
+            style={{ fontWeight: 600 }}
+          >
+            {added ? (
+              <>
+                <Check className="w-4 h-4" strokeWidth={2.5} />
+                Added to Bag
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="w-4 h-4" strokeWidth={2} />
+                Add to Bag
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            disabled
+            className="w-full rounded-full py-4 sm:py-5 bg-gray-100 text-gray-400 cursor-not-allowed text-[11px] uppercase tracking-[0.25em] font-bold"
+          >
+            Sold Out
+          </button>
+        )}
+
+        <div className="flex items-center gap-3 w-full mt-1">
+          <button
+            onClick={handleShare}
+            className="flex-1 border border-gray-200 py-3.5 rounded-full flex items-center justify-center gap-2 hover:border-[#1A0A0A] text-gray-500 hover:text-[#1A0A0A] transition-colors active:scale-95"
+          >
+            <Share size={14} strokeWidth={2} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Share Link</span>
+          </button>
+          
+          <button
+            onClick={() => setQrOpen(true)}
+            className="flex-1 border border-gray-200 py-3.5 rounded-full flex items-center justify-center gap-2 hover:border-[#1A0A0A] text-gray-500 hover:text-[#1A0A0A] transition-colors active:scale-95"
+          >
+            <QrCode size={14} strokeWidth={2} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Show QR</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 py-6 border-t border-b border-gray-100 my-4">
+        {[
+          { Icon: Truck, label: 'Nationwide Delivery' },
+          { Icon: RefreshCw, label: 'Easy Returns' },
+          { Icon: Shield, label: 'Secure Checkout' },
+        ].map(({ Icon, label }) => (
+          <div key={label} className="flex flex-col items-center gap-2 text-center">
+            <Icon className="w-4 h-4 text-[#C9956C]" strokeWidth={1.5} />
+            <span className="text-[9px] text-gray-500 uppercase tracking-widest max-w-[80px] leading-relaxed font-bold">
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <SizeGuideModal open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
+      {qrOpen && (
+        <QRCodeModal
+          url={productUrl}
+          productName={product.name}
+          productImage={product.images?.[0]}
+          onClose={() => setQrOpen(false)}
+        />
+      )}
+    </div>
+  );
+});
+
+export default ProductInfoPanel;
