@@ -1,25 +1,28 @@
 import { ImageResponse } from 'next/og';
+import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'edge';
 export const alt = 'Luxury Steps Boutique';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : 'https://luxurystepsboutique.vercel.app');
+// Edge-friendly Supabase client. Reads via the anon key (the products
+// table allows public SELECT under our RLS policy), so no service-role
+// secret is exposed to edge runtime.
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
 
 // Max image size the Edge runtime can comfortably embed (~500KB).
 // Anything larger is dropped and we render a clean LSB placeholder
-// — better than the route returning 0 bytes and breaking the whole preview.
+// — better than the route returning 0 bytes and breaking the preview.
 const MAX_IMAGE_BYTES = 500_000;
 
 async function imageIsLightEnough(url: string): Promise<boolean> {
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 2500);
+    const t = setTimeout(() => ctrl.abort(), 1800);
     const res = await fetch(url, { method: 'HEAD', signal: ctrl.signal });
     clearTimeout(t);
     if (!res.ok) return false;
@@ -32,11 +35,16 @@ async function imageIsLightEnough(url: string): Promise<boolean> {
 
 export default async function OGImage({ params }: { params: { slug: string } }) {
   try {
-    const res = await fetch(`${SITE_URL}/api/products/${params.slug}`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) throw new Error('not found');
-    const { product } = await res.json();
+    // Direct Supabase query — no HTTP hop through /api/products/[slug].
+    // Cuts ~150–300ms off cold-scrape latency, which is the difference
+    // between WhatsApp showing the preview and timing out.
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('name, category, price, images')
+      .eq('slug', params.slug)
+      .single();
+
+    if (error || !product) throw new Error('not found');
 
     const rawImage: string | undefined = product.images?.[0];
     const showImage = rawImage?.startsWith('http')
