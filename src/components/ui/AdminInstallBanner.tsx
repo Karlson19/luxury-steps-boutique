@@ -3,48 +3,99 @@
 import { useState, useEffect } from 'react';
 import { X, Monitor } from 'lucide-react';
 
-const STORAGE_KEY = 'lsb-admin-install-dismissed';
+// Localstorage key for the "snooze until" timestamp. Same pattern as the
+// storefront install banner — see InstallAppBanner.tsx for the rationale.
+const STORAGE_KEY = 'lsb-admin-install-dismissed-until';
+
+const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days when dismissed
+const FOREVER_MS = 365 * 24 * 60 * 60 * 1000; // effectively never after install
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BeforeInstallPromptEvent = any;
+
+function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((window.navigator as any).standalone === true) return true;
+  return false;
+}
+
+function snoozedUntilNow(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  const ts = parseInt(raw, 10);
+  return Number.isFinite(ts) && Date.now() < ts;
+}
+
+function snooze(ms: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY, String(Date.now() + ms));
+  } catch { /* private mode */ }
+}
 
 export default function AdminInstallBanner() {
   const [visible, setVisible] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    // Don't show if already dismissed this session
-    if (sessionStorage.getItem(STORAGE_KEY)) return;
+    // Already running as installed PWA — never show
+    if (isStandalone()) return;
+    // Snoozed window in effect — stay quiet
+    if (snoozedUntilNow()) return;
 
-    // Capture prompt if browser supports it
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Always show after a short delay — don't rely on beforeinstallprompt
+    const onInstalled = () => {
+      snooze(FOREVER_MS);
+      setVisible(false);
+      setDeferredPrompt(null);
+    };
+    window.addEventListener('appinstalled', onInstalled);
+
+    // Show the banner shortly after page settle so it doesn't flash in
     const timer = setTimeout(() => setVisible(true), 2500);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', onInstalled);
       clearTimeout(timer);
     };
   }, []);
 
   function handleDismiss() {
-    sessionStorage.setItem(STORAGE_KEY, '1');
+    snooze(SNOOZE_MS);
     setVisible(false);
   }
 
   async function handleInstall() {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          snooze(FOREVER_MS);
+          setVisible(false);
+          setDeferredPrompt(null);
+          return;
+        }
+        // User cancelled the native prompt — snooze
+        snooze(SNOOZE_MS);
+        setVisible(false);
+        setDeferredPrompt(null);
+        return;
+      } catch {
+        snooze(SNOOZE_MS);
         setVisible(false);
         return;
       }
     }
-    // Fallback: point them to the browser install icon
+    // Fallback for browsers that don't fire beforeinstallprompt (e.g. iOS Safari)
     alert('To install: click the ⊕ install icon in your browser\'s address bar, then click "Install".');
   }
 
