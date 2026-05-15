@@ -9,40 +9,12 @@ import { Product } from '@/types';
 import { useCartStore } from '@/store/cart';
 import { useWishlistStore } from '@/store/wishlist';
 import { sortSizes } from '@/lib/utils';
+import { resolveColor } from '@/lib/colors';
 import { toast } from '@/components/ui/Toast';
 
-// ✨ NEW: Color Dictionary for visual swatches
-const COLOR_MAP: Record<string, string> = {
-  'Black': '#000000',
-  'White': '#FFFFFF',
-  'Red': '#DC2626',
-  'Navy Blue': '#1E3A8A',
-  'Blue': '#2563EB',
-  'Gold': '#D4AF37',
-  'Silver': '#C0C0C0',
-  'Brown': '#78350F',
-  'Tan': '#D2B48C',
-  'Beige': '#F5F5DC',
-  'Cream': '#FFFDD0',
-  'Grey': '#9CA3AF',
-  'Charcoal': '#374151',
-  'Pink': '#EC4899',
-  'Rose Gold': '#B76E79',
-  'Green': '#16A34A',
-  'Emerald': '#065F46',
-  'Olive': '#3F6212',
-  'Purple': '#9333EA',
-  'Lavender': '#D8B4E2',
-  'Yellow': '#EAB308',
-  'Orange': '#F97316',
-  'Burgundy': '#800020',
-  'Maroon': '#800000',
-  'Teal': '#0D9488',
-  'Cyan': '#0891B2',
-  'Peach': '#FFDAB9',
-  'Mustard': '#FFDB58',
-  'Mint': '#3EB489',
-};
+// Color swatches use the shared resolver from lib/colors.ts so any name
+// the admin types — curated, CSS-named, two-word modifiers like
+// "Greenish Grey", or anything else — always renders a visible swatch.
 
 const CATEGORY_COLORS: Record<string, string> = {
   heels: 'bg-[#C8102E]',
@@ -266,11 +238,11 @@ export default function ProductCard({ product, priority, className = '' }: Props
           {hasColors && product.colors && product.colors.length > 0 && (
             <div className="flex items-center gap-1.5 mb-2.5 pointer-events-none" aria-hidden="true">
               {product.colors.slice(0, 4).map((c) => {
-                const colorKey = Object.keys(COLOR_MAP).find((k) => k.toLowerCase() === c.toLowerCase());
-                const hex = colorKey ? COLOR_MAP[colorKey] : '#9CA3AF';
+                const { hex } = resolveColor(c);
                 return (
                   <span
                     key={c}
+                    title={c}
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/10"
                     style={{ backgroundColor: hex }}
                   />
@@ -315,20 +287,17 @@ export default function ProductCard({ product, priority, className = '' }: Props
                   </div>
                   <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 px-1">
                     {product.colors!.map((c) => {
-                      const colorKey = Object.keys(COLOR_MAP).find(k => k.toLowerCase() === c.toLowerCase());
-                      const hexValue = colorKey ? COLOR_MAP[colorKey] : null;
-
-                      if (hexValue) {
-                        return (
-                          <button key={c} onClick={(e) => handleColorSelect(c, e)} aria-label={c} title={c} className="flex-shrink-0 w-8 h-8 rounded-full ring-1 ring-gray-200 hover:ring-gray-400 transition-all shadow-sm active:scale-95" style={{ backgroundColor: hexValue }} />
-                        );
-                      } else {
-                        return (
-                          <button key={c} onClick={(e) => handleColorSelect(c, e)} className="flex-shrink-0 h-8 px-3 rounded-lg border border-bone bg-white text-ink text-[11px] font-semibold hover:border-burgundy hover:text-burgundy active:bg-champagne-100 transition-all shadow-sm" style={{ fontFamily: 'var(--font-jost)' }}>
-                            {c}
-                          </button>
-                        );
-                      }
+                      const { hex } = resolveColor(c);
+                      return (
+                        <button
+                          key={c}
+                          onClick={(e) => handleColorSelect(c, e)}
+                          aria-label={c}
+                          title={c}
+                          className="flex-shrink-0 w-8 h-8 rounded-full ring-1 ring-gray-200 hover:ring-gray-400 transition-all shadow-sm active:scale-95"
+                          style={{ backgroundColor: hex }}
+                        />
+                      );
                     })}
                   </div>
                 </div>

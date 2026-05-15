@@ -15,6 +15,7 @@ import {
 import { Product } from '@/types';
 import { toast } from '@/components/ui/Toast';
 import { sortSizes } from '@/lib/utils';
+import { resolveColor } from '@/lib/colors';
 import SizeGuideModal from './SizeGuideModal';
 import QRCodeModal from '../admin/QRCodeModal';
 
@@ -26,86 +27,6 @@ function toTitleCase(str: string): string {
     .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
-}
-
-// Curated swatch values for fashion-named colors. Anything not in this map
-// falls back to the CSS named colour (e.g. "violet", "indigo", "salmon",
-// "khaki" — browsers recognise ~140 names). If that fails too, the helper
-// returns a soft grey so the swatch is still rendered as a circle.
-const COLOR_MAP: Record<string, string> = {
-  'Black':       '#000000',
-  'White':       '#FFFFFF',
-  'Red':         '#DC2626',
-  'Scarlet':     '#C8102E',
-  'Crimson':     '#9B1B30',
-  'Burgundy':    '#7B1818',
-  'Maroon':      '#5C0F1B',
-  'Wine':        '#5E2129',
-  'Pink':        '#EC4899',
-  'Hot Pink':    '#F472B6',
-  'Blush':       '#FFC0CB',
-  'Rose':        '#E11D48',
-  'Rose Gold':   '#B76E79',
-  'Coral':       '#FF7F50',
-  'Peach':       '#FFDAB9',
-  'Orange':      '#F97316',
-  'Mustard':     '#E0A800',
-  'Yellow':      '#EAB308',
-  'Gold':        '#D4AF37',
-  'Champagne':   '#F7E7CE',
-  'Cream':       '#FFFDD0',
-  'Ivory':       '#FFFAF0',
-  'Beige':       '#F5F5DC',
-  'Nude':        '#E3BC9A',
-  'Tan':         '#D2B48C',
-  'Camel':       '#C19A6B',
-  'Brown':       '#78350F',
-  'Chocolate':   '#5C3317',
-  'Mocha':       '#7B5E51',
-  'Khaki':       '#C3B091',
-  'Olive':       '#3F6212',
-  'Green':       '#16A34A',
-  'Emerald':     '#065F46',
-  'Sage':        '#9CAF88',
-  'Mint':        '#3EB489',
-  'Forest':      '#1E4D2B',
-  'Teal':        '#0D9488',
-  'Turquoise':   '#30D5C8',
-  'Cyan':        '#0891B2',
-  'Sky Blue':    '#7DD3FC',
-  'Baby Blue':   '#BFDBFE',
-  'Blue':        '#2563EB',
-  'Royal Blue':  '#1D4ED8',
-  'Navy':        '#1E3A8A',
-  'Navy Blue':   '#1E3A8A',
-  'Cobalt':      '#0047AB',
-  'Indigo':      '#4338CA',
-  'Denim':       '#1F4E79',
-  'Purple':      '#9333EA',
-  'Plum':        '#8B3A62',
-  'Violet':      '#7C3AED',
-  'Lavender':    '#D8B4E2',
-  'Lilac':       '#C8A2C8',
-  'Magenta':     '#C026D3',
-  'Fuchsia':     '#D946EF',
-  'Silver':      '#C0C0C0',
-  'Grey':        '#9CA3AF',
-  'Gray':        '#9CA3AF',
-  'Charcoal':    '#374151',
-  'Slate':       '#475569',
-  'Stone':       '#A8A29E',
-  'Taupe':       '#8B7E74',
-  'Bronze':      '#A97142',
-  'Copper':      '#B87333',
-};
-
-function resolveColor(name: string): { hex: string; known: boolean } {
-  const key = Object.keys(COLOR_MAP).find((k) => k.toLowerCase() === name.toLowerCase());
-  if (key) return { hex: COLOR_MAP[key], known: true };
-  // Trust the browser to resolve CSS named colours (violet, salmon, khaki, etc.)
-  // — invalid names will just render with the page background showing through,
-  // which we mitigate by always rendering a visible ring around the swatch.
-  return { hex: name.toLowerCase().replace(/\s+/g, ''), known: false };
 }
 
 const CATEGORY_BADGES: Record<string, string> = {

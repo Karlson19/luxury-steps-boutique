@@ -54,7 +54,10 @@ export default function ProductDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/products/${slug}`);
+        // cache: 'no-store' keeps the product detail page in sync with the
+        // admin panel. Without this the browser HTTP cache would serve stale
+        // data after a product is updated.
+        const res = await fetch(`/api/products/${slug}`, { cache: 'no-store' });
         if (!res.ok) throw new Error('fallback');
         const json = await res.json();
         setProduct(json.product);
