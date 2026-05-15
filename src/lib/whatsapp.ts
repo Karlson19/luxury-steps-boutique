@@ -25,9 +25,18 @@ interface CartLineItem {
   color?: string;
 }
 
+export interface CheckoutDetails {
+  name: string;
+  phone: string;
+  location: string;
+  payment: 'MOMO' | 'Bank Transfer' | 'Cash on Delivery';
+  note?: string;
+}
+
 interface CartCheckoutOptions {
   subtotal?: number;
   discount?: { code: string; amount: number };
+  details?: CheckoutDetails;
 }
 
 // ─── SEPARATOR ───
@@ -77,12 +86,25 @@ export function cartCheckoutLink(
   msg += `_(Excl. Delivery)_\n\n`;
 
   msg += `📋 *DELIVERY & PAYMENT DETAILS:*\n`;
-  msg += `👤 *Name:* [Type your name]\n`;
-  msg += `📞 *Phone:* [Type phone number]\n`;
-  msg += `📍 *Location:* [Type delivery area / landmark]\n`;
-  msg += `💳 *Payment:* [MOMO / Bank / Cash]\n\n`;
-
-  msg += `_Please confirm availability and my final total._`;
+  if (options.details) {
+    const { name, phone, location, payment, note } = options.details;
+    msg += `👤 *Name:* ${name}\n`;
+    msg += `📞 *Phone:* ${phone}\n`;
+    msg += `📍 *Location:* ${location}\n`;
+    msg += `💳 *Payment:* ${payment}\n`;
+    if (note && note.trim().length > 0) {
+      msg += `📝 *Note:* ${note.trim()}\n`;
+    }
+    msg += `\n_Please confirm availability and my final total._`;
+  } else {
+    // Legacy fallback — shouldn't happen now that the checkout modal collects
+    // these on-site, but kept so old call sites don't crash.
+    msg += `👤 *Name:* [Type your name]\n`;
+    msg += `📞 *Phone:* [Type phone number]\n`;
+    msg += `📍 *Location:* [Type delivery area / landmark]\n`;
+    msg += `💳 *Payment:* [MOMO / Bank / Cash]\n\n`;
+    msg += `_Please confirm availability and my final total._`;
+  }
 
   return waLink(msg);
 }

@@ -6,14 +6,16 @@ import { X, ShoppingBag, Minus, Plus, Trash2, Tag, Loader2 } from 'lucide-react'
 import WhatsAppIcon from '@/components/icons/WhatsAppIcon';
 import Link from 'next/link';
 import { useCartStore } from '@/store/cart';
-import { cartCheckoutLink } from '@/lib/whatsapp';
+import { cartCheckoutLink, type CheckoutDetails } from '@/lib/whatsapp';
 import { formatPrice } from '@/lib/utils';
 import { toast } from '@/components/ui/Toast';
+import CheckoutDetailsModal from './CheckoutDetailsModal';
 
 export default function CartDrawer() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [validating, setValidating] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const { items, removeItem, updateQty, subtotal, total, itemCount, discount, applyDiscount, removeDiscount } = useCartStore();
 
   function openCart() {
@@ -53,22 +55,30 @@ export default function CartDrawer() {
   const count = itemCount();
   const savings = discount?.amount ?? 0;
 
-  // ✨ UPDATED: Now passing `color` to the WhatsApp invoice generator!
-  const whatsappUrl = cartCheckoutLink(
-    items.map((i) => ({ 
-      name: i.name, 
-      price: i.price, 
-      quantity: i.quantity, 
-      size: i.size, 
-      color: i.color, // ✨ Passed color here
-      slug: i.slug 
-    })),
-    grand,
-    {
-      subtotal: sub,
-      discount: discount ? { code: discount.code, amount: discount.amount } : undefined,
-    }
-  );
+  // Build the WhatsApp link once the customer has filled in delivery details
+  // in the modal. The link embeds their name / phone / location / payment so
+  // Rahinatu receives a complete order — no [Type your name] placeholders.
+  function handleSendOrder(details: CheckoutDetails) {
+    const url = cartCheckoutLink(
+      items.map((i) => ({
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+        size: i.size,
+        color: i.color,
+        slug: i.slug,
+      })),
+      grand,
+      {
+        subtotal: sub,
+        discount: discount ? { code: discount.code, amount: discount.amount } : undefined,
+        details,
+      },
+    );
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setCheckoutOpen(false);
+    closeCart();
+  }
 
   async function applyCode() {
     if (!code.trim() || validating) return;
@@ -290,16 +300,15 @@ export default function CartDrawer() {
               </div>
             </div>
 
-            {/* Checkout */}
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* Checkout — opens the delivery-details modal first */}
+            <button
+              type="button"
+              onClick={() => setCheckoutOpen(true)}
               className="btn-shine flex items-center justify-center gap-2 w-full bg-gradient-to-r from-gray-900 via-[#C8102E] to-gray-900 bg-[length:200%_100%] hover:bg-[100%_0] text-white font-black text-xs uppercase tracking-wider py-4 rounded-2xl active:scale-[0.98] transition-all duration-500 shadow-xl shadow-[#C8102E]/25"
             >
               <WhatsAppIcon size={15} />
               Checkout via WhatsApp
-            </a>
+            </button>
             <button
               disabled
               className="w-full text-gray-400 text-[10px] font-bold uppercase tracking-wider py-2 cursor-not-allowed"
@@ -309,6 +318,14 @@ export default function CartDrawer() {
           </div>
         )}
       </aside>
+
+      <CheckoutDetailsModal
+        open={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        onSubmit={handleSendOrder}
+        itemCount={count}
+        total={grand}
+      />
     </>
   );
 }
